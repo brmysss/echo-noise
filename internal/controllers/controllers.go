@@ -181,17 +181,65 @@ func GetMessagesByPage(c *gin.Context) {
 		pageSize = 10
 	}
 
-	// 检查权限
-	showPrivate := false
-	userID, exists := c.Get("user_id")
-	if exists {
-		user, err := services.GetUserByID(userID.(uint))
-		if err == nil && user.IsAdmin {
-			showPrivate = true
+	// 检查权限并传递用户上下文
+	var currentUserID *uint
+	isAdmin := false
+	// 优先从上下文获取（由中间件设置）
+	if uid, exists := c.Get("user_id"); exists {
+		u, err := services.GetUserByID(uid.(uint))
+		if err == nil {
+			id := u.ID
+			currentUserID = &id
+			isAdmin = u.IsAdmin
+		}
+	} else {
+		// 兼容未使用鉴权中间件的场景：从 session 获取
+		session := sessions.Default(c)
+		if v := session.Get("user_id"); v != nil {
+			switch val := v.(type) {
+			case uint:
+				id := val
+				currentUserID = &id
+			case int:
+				id := uint(val)
+				currentUserID = &id
+			case int64:
+				id := uint(val)
+				currentUserID = &id
+			case float64:
+				id := uint(val)
+				currentUserID = &id
+			case string:
+				if parsed, err := strconv.ParseUint(val, 10, 64); err == nil {
+					id := uint(parsed)
+					currentUserID = &id
+				}
+			}
+		}
+		if v := session.Get("is_admin"); v != nil {
+			switch val := v.(type) {
+			case bool:
+				isAdmin = val
+			case int:
+				isAdmin = val != 0
+			case int64:
+				isAdmin = val != 0
+			case float64:
+				isAdmin = val != 0
+			case string:
+				isAdmin = val == "true" || val == "1"
+			}
+		}
+		// 如果仅拿到 user_id，则再查一次用户，确保 isAdmin
+		if currentUserID != nil && !isAdmin {
+			u, err := services.GetUserByID(*currentUserID)
+			if err == nil {
+				isAdmin = u.IsAdmin
+			}
 		}
 	}
 
-	pageQueryResult, err := services.GetMessagesByPage(page, pageSize, showPrivate)
+	pageQueryResult, err := services.GetMessagesByPage(page, pageSize, currentUserID, isAdmin)
 	if err != nil {
 		c.JSON(http.StatusOK, dto.Fail[string](err.Error()))
 		return

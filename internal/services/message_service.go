@@ -16,40 +16,40 @@ import (
 
 // GetAllMessages 封装业务逻辑，获取所有笔记
 func GetAllMessages(showPrivate bool) ([]models.Message, error) {
-    var messages []models.Message
-    var err error
+	var messages []models.Message
+	var err error
 
-    if showPrivate {
-        // 如果是管理员或作者，则不需要过滤私密笔记
-        messages, err = repository.GetAllMessages(true)
-    } else {
-        // 如果不是管理员或作者，则只查询公开的笔记
-        messages, err = repository.GetAllMessages(false)
-    }
+	if showPrivate {
+		// 如果是管理员或作者，则不需要过滤私密笔记
+		messages, err = repository.GetAllMessages(true)
+	} else {
+		// 如果不是管理员或作者，则只查询公开的笔记
+		messages, err = repository.GetAllMessages(false)
+	}
 
-    if err != nil {
-        return nil, fmt.Errorf("获取消息失败: %v", err)
-    }
+	if err != nil {
+		return nil, fmt.Errorf("获取消息失败: %v", err)
+	}
 
-    return messages, nil
+	return messages, nil
 }
 
 // GetMessageByID 根据 ID 获取笔记
 func GetMessageByID(id uint, showPrivate bool) (*models.Message, error) {
-    message, err := repository.GetMessageByID(id, showPrivate)
-    if err != nil {
-        return nil, fmt.Errorf("获取消息失败: %v", err)
-    }
+	message, err := repository.GetMessageByID(id, showPrivate)
+	if err != nil {
+		return nil, fmt.Errorf("获取消息失败: %v", err)
+	}
 
-    if message == nil {
-        return nil, fmt.Errorf("消息不存在")
-    }
+	if message == nil {
+		return nil, fmt.Errorf("消息不存在")
+	}
 
-    return message, nil
+	return message, nil
 }
 
-// GetMessagesByPage 分页获取笔记
-func GetMessagesByPage(page, pageSize int, showPrivate bool) (dto.PageQueryResult, error) {
+// GetMessagesByPage 分页获取笔记（管理员查看全部；普通用户可查看公开和自己的私密）
+func GetMessagesByPage(page, pageSize int, userID *uint, isAdmin bool) (dto.PageQueryResult, error) {
 	// 参数校验
 	if page < 1 {
 		page = 1
@@ -64,22 +64,23 @@ func GetMessagesByPage(page, pageSize int, showPrivate bool) (dto.PageQueryResul
 	var messages []models.Message
 	var total int64
 
-	if showPrivate {
-		// 如果是管理员，则不需要过滤私密笔记
+	if isAdmin {
+		// 管理员查看全部
 		database.DB.Model(&models.Message{}).Count(&total)
 		database.DB.Limit(pageSize).Offset(offset).Order("created_at DESC").Find(&messages)
+	} else if userID != nil {
+		// 普通登录用户：公开的 + 自己的私密
+		query := database.DB.Model(&models.Message{}).Where("private = ? OR user_id = ?", false, *userID)
+		query.Count(&total)
+		query.Limit(pageSize).Offset(offset).Order("created_at DESC").Find(&messages)
 	} else {
-		// 如果不是管理员，则只查询公开的笔记
+		// 未登录用户：仅公开
 		database.DB.Model(&models.Message{}).Where("private = ?", false).Count(&total)
 		database.DB.Limit(pageSize).Offset(offset).Where("private = ?", false).Order("created_at DESC").Find(&messages)
 	}
 
 	// 返回结果
-	var PageQueryResult dto.PageQueryResult
-	PageQueryResult.Total = total
-	PageQueryResult.Items = messages
-
-	return PageQueryResult, nil
+	return dto.PageQueryResult{Total: total, Items: messages}, nil
 }
 
 // CreateMessage 发布一条笔记

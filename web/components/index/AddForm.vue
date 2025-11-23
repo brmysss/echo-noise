@@ -69,17 +69,15 @@
             @click="showImageUploader = true"
             title="图床上传"
           />
-          <!-- 
           <UButton
             color="gray"
             variant="solid"
             size="sm"
-            @click="Private = !Private"
+            @click="togglePrivate"
             :icon="privateIcon"
             :title="Private ? '设为公开' : '设为私密'"
             :ui="{ tooltip: { text: Private ? '设为公开' : '设为私密' } }"
           />
-          -->
           <UButton
             color="gray"
             variant="solid"
@@ -225,7 +223,7 @@ const toggleHeatmap = () => {
 const Username = ref("");
 const MessageContent = ref("");
 const MessageContentHtml = ref("");
-const Private = ref<boolean>(false);
+const Private = ref<boolean>(typeof window !== 'undefined' && localStorage.getItem('postPrivate') === 'true');
 const fileInput = ref<HTMLInputElement | null>(null);
 const vditorEditor = ref<any>(null); // 需要支持 insertValue
 
@@ -238,7 +236,7 @@ const clearForm = () => {
   Username.value = "";
   MessageContent.value = "";
   MessageContentHtml.value = "";
-  Private.value = false;
+  
   if (vditorEditor.value) {
     vditorEditor.value.clear();
   }
@@ -379,6 +377,7 @@ onMounted(async () => {
       await userStore.fetchUserInfo();
     }
   }
+  Private.value = localStorage.getItem('postPrivate') === 'true'
 });
 
 onBeforeUnmount(() => {
@@ -388,6 +387,11 @@ const toggleNotify = () => {
   enableNotify.value = !enableNotify.value;
   localStorage.setItem('enableNotify', enableNotify.value.toString());
 };
+
+const togglePrivate = () => {
+  Private.value = !Private.value
+  localStorage.setItem('postPrivate', Private.value ? 'true' : 'false')
+}
 
 const checkVideoLogin = (e: Event) => {
   if (!userStore.isLogin) {
@@ -420,7 +424,7 @@ const addMessage = async () => {
     username: Username.value,
     content: MessageContent.value,
     private: Private.value,
-    notify: Private.value ? false : enableNotify.value,
+    notify: enableNotify.value,
   };
 
   try {
