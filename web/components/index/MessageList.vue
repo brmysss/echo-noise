@@ -919,6 +919,11 @@ const downloadAsImage = async (msgId: number) => {
     
     // 3. 复制并处理内容
     const contentClone = element.cloneNode(true) as HTMLElement;
+    const parentStyles = window.getComputedStyle(element as HTMLElement);
+    const bgColor = parentStyles.backgroundColor && parentStyles.backgroundColor !== 'rgba(0, 0, 0, 0)'
+      ? parentStyles.backgroundColor
+      : '#ffffff';
+    const textColor = parentStyles.color || '#333';
     
     // 移除所有控制元素和限制
     contentClone.querySelectorAll('.text-center.mt-2, .bg-gradient-to-t').forEach(el => el.remove());
@@ -927,27 +932,28 @@ const downloadAsImage = async (msgId: number) => {
       overflow: visible;
       padding: 0;
       margin: 0;
-      background: transparent;
+      background: ${bgColor};
+      border-radius: 12px;
     `;
     
     // 处理内容区域
     const contentArea = contentClone.querySelector('.overflow-y-hidden');
-if (contentArea) {
-  contentArea.className = '';
-  contentArea.style.cssText = `
-    overflow: visible;
-    max-height: none !important;
-    height: auto !important;
-    padding: 12px;
-    line-height: 1.6;
-    margin-bottom: 0;
-    white-space: pre-wrap;
-    background: transparent;
-    border-radius: 12px;
-    font-size: 14px;
-    color: #333;
-  `;
-}
+    if (contentArea) {
+      contentArea.className = '';
+      contentArea.style.cssText = `
+        overflow: visible;
+        max-height: none !important;
+        height: auto !important;
+        padding: 12px;
+        line-height: 1.6;
+        margin-bottom: 0;
+        white-space: pre-wrap;
+        background: ${bgColor};
+        border-radius: 12px;
+        font-size: 14px;
+        color: ${textColor};
+      `;
+    }
 
     // 处理媒体元素
     const mediaElements = contentClone.querySelectorAll('video, audio, iframe');
@@ -1059,7 +1065,8 @@ await processImages();
             height: auto !important;
             padding: 0;
             min-height: ${contentArea?.scrollHeight || 0}px;
-            background: transparent;
+            background: ${bgColor};
+            border-radius: 12px;
           `;
         }
       }
