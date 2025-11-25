@@ -157,7 +157,10 @@ watch(() => props.theme, (newTheme) => {
 .vditor-toolbar {
   display: flex;
   flex-wrap: nowrap;
-  overflow: visible;
+  overflow-x: auto;
+  overflow-y: hidden;
+  width: 100%;
+  max-width: 100%;
   white-space: nowrap;
   -webkit-overflow-scrolling: touch;
   scrollbar-width: none;
@@ -277,6 +280,15 @@ html.dark .vditor-preview {
   .vditor-ir pre.vditor-reset {
     padding: 8px 12px !important;
     font-size: 13px;
+  }
+  .vditor-toolbar {
+    overflow-x: auto;
+    overflow-y: hidden;
+    width: 100%;
+    max-width: 100%;
+    -webkit-overflow-scrolling: touch;
+    touch-action: pan-x;
+    overscroll-behavior-x: contain;
   }
 }
 </style>
