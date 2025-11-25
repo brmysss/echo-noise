@@ -53,11 +53,18 @@
 <summary><h2>✅ 更新状况【点击查看】</h2></summary>
 
 
-### 2025更新状态
+## 2025更新状态
+
+- 精简镜像包体积大小
+
+  ![FG7av3W9XmHdelT](https://s2.loli.net/2025/11/25/FG7av3W9XmHdelT.png)
 
 - 增加github卡片解析后台开关，优化pwa模式页面加载
+
 - 统一内容卡片颜色模式切换
+
 - 新增公开接口： /api/messages/search 、 /api/messages 、 /api/messages/calendar 、 /api/status 、 /api/version/check
+
 - 增加内容列表的颜色模式开关，默认暗黑模式
 
 - 修复私密发布功能
@@ -387,6 +394,13 @@ curl -L https://fly.io/install.sh | sh
 
 <details>
 <summary><h2>✅ Zeabur部署【点击查看】</h2></summary>
+新版zeabur部署
+
+直接输入镜像包名称及端口号即可
+
+![aZU81x6DXFCbQcO](https://s2.loli.net/2025/11/25/aZU81x6DXFCbQcO.jpg)
+
+![RhTzuBgmpt3diVQ](https://s2.loli.net/2025/11/25/RhTzuBgmpt3diVQ.jpg)![qyOCxBEon8AmGJ4](https://s2.loli.net/2025/11/25/qyOCxBEon8AmGJ4.jpg)
 
 zeabur.toml
 
@@ -1352,7 +1366,7 @@ exports.actions = [{
 - [x] 加入标签路由及组件
 - [x] 加入一键推送
 - [x] 内容区域切换亮暗模式
-- [ ] 精简镜像包体积大小
+- [x] 精简镜像包体积大小
 - [ ] 内容置顶功能
 - [ ] MCP模式（搜索、写入）AI发布写入
 - [ ] 页面加载过渡优化
