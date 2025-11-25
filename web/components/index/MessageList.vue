@@ -109,9 +109,9 @@
     <UButton 
       v-if="message.page > 1"
       color="gray" 
-      variant="outline" 
+      variant="ghost" 
       size="xs" 
-      class="rounded-full px-4 py-1.5 bg-[rgba(36,43,50,0.95)] text-white hover:text-white border-none shadow-lg hover:shadow-xl transition-all duration-300 backdrop-blur-sm"
+      :class="['rounded-full px-4 py-1.5 border-none shadow-lg hover:shadow-xl transition-all duration-300 backdrop-blur-sm', pagerBtnClass]"
       @click="loadPreviousPage"
       :disabled="isPageLoading"
     >
@@ -122,9 +122,9 @@
     <UButton 
       v-if="message.hasMore"
       color="gray" 
-      variant="outline" 
+      variant="ghost" 
       size="xs" 
-      class="rounded-full px-4 py-1.5 bg-[rgba(36,43,50,0.95)] text-white hover:text-white border-none shadow-lg hover:shadow-xl transition-all duration-300 backdrop-blur-sm"
+      :class="['rounded-full px-4 py-1.5 border-none shadow-lg hover:shadow-xl transition-all duration-300 backdrop-blur-sm', pagerBtnClass]"
       @click="loadNextPage"
       :disabled="isPageLoading"
     >
@@ -224,6 +224,9 @@ const commentThemeClass = computed(() => contentTheme.value === 'dark'
 const expandBtnClass = computed(() => contentTheme.value === 'dark'
   ? 'bg-[rgba(36,43,50,0.95)] text-white hover:text-white border-none shadow-sm rounded-full'
   : 'bg-white text-black hover:text-black border border-gray-300 shadow-sm rounded-full')
+const pagerBtnClass = computed(() => contentTheme.value === 'dark'
+  ? 'bg-[rgba(36,43,50,0.35)] text-white hover:text-white hover:bg-[rgba(36,43,50,0.45)] active:bg-[rgba(36,43,50,0.5)] focus:bg-[rgba(36,43,50,0.45)]'
+  : 'bg-[rgba(24,28,32,0.25)] text-white hover:text-white hover:bg-[rgba(24,28,32,0.35)] active:bg-[rgba(24,28,32,0.4)] focus:bg-[rgba(24,28,32,0.35)]')
 
 const targetPage = ref('');
 const totalPages = computed(() => Math.ceil(message.total / 15));
