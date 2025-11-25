@@ -1,5 +1,5 @@
 <template>
-  <UCard class="mx-auto sm:max-w-2xl hover:shadow-md backdrop-blur-sm bg-black/40 shadow-lg text-white">
+  <UCard class="mx-auto sm:max-w-2xl hover:shadow-md backdrop-blur-sm bg-black/20 shadow-lg text-white">
     <div class="flex justify-between mb-3">
       <div class="flex justify-start items-center gap-2">
         <UIcon 
@@ -16,7 +16,7 @@
           <button @click="toggleHeatmap">
             <UIcon name="i-mdi-calendar-month" class="w-5 h-5 text-gray-200" />
           </button>
-          <button @click="toggleContentTheme && toggleContentTheme()" title="切换暗黑/白天模式">
+          <button @click="toggleTheme" title="切换暗黑/白天模式">
             <UIcon 
               :name="(contentTheme === 'dark' ? 'i-mdi-weather-night' : 'i-mdi-white-balance-sunny')"
               class="w-5 h-5 text-gray-200"
@@ -33,7 +33,7 @@
     </div>
 
     <div>
-      <VditorEditor ref="vditorEditor" v-model="MessageContent" />
+      <VditorEditor ref="vditorEditor" v-model="MessageContent" :theme="contentTheme" />
       <div class="flex justify-between items-center">
         <div class="flex items-center justify-start gap-2">
           <input
@@ -232,6 +232,12 @@ const MessageContentHtml = ref("");
 const Private = ref<boolean>(typeof window !== 'undefined' && localStorage.getItem('postPrivate') === 'true');
 const contentTheme = inject('contentTheme') as Ref<string>
 const toggleContentTheme = inject('toggleContentTheme') as (() => void) | undefined
+const toggleTheme = () => {
+  toggleContentTheme && toggleContentTheme()
+  if (typeof window !== 'undefined') {
+    document.documentElement.className = contentTheme.value === 'dark' ? 'dark' : ''
+  }
+}
 const fileInput = ref<HTMLInputElement | null>(null);
 const vditorEditor = ref<any>(null); // 需要支持 insertValue
 

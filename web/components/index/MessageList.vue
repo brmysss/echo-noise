@@ -90,14 +90,14 @@
               <!-- 展开/折叠按钮 -->
               <div v-if="shouldShowExpandButton[msg.id]" class="text-center mt-2 relative" style="z-index: 9999;">
                 <button @click="toggleExpand(msg.id)"
-                  class="flex items-center justify-center space-x-1 mx-auto px-4 py-2 text-orange-500 hover:text-orange-600 focus:outline-none transition-colors duration-200">
+                  :class="['expand-toggle-btn flex items-center justify-center space-x-1 mx-auto px-4 py-2 focus:outline-none transition-colors duration-200', expandBtnClass]">
                   <span>{{ isExpanded[msg.id] ? "收起内容" : "展开全文" }}</span>
                   <UIcon :name="isExpanded[msg.id] ? 'i-mdi-chevron-up' : 'i-mdi-chevron-down'" class="w-5 h-5" />
                 </button>
               </div>
             </div>
             <!-- 评论区域 -->
-            <div v-show="activeCommentId === msg.id" class="mt-4">
+            <div v-show="activeCommentId === msg.id" class="mt-4" :class="commentThemeClass">
               <div :id="`waline-${msg.id}`"></div>
             </div>
           </div>
@@ -218,6 +218,12 @@ const contentTheme = inject('contentTheme', ref<string>(typeof window !== 'undef
 const listThemeClass = computed(() => contentTheme.value === 'dark' ? 'bg-[rgba(36,43,50,0.95)] text-white' : 'bg-white text-black')
 const listThemeTextClass = computed(() => contentTheme.value === 'dark' ? 'text-white' : 'text-black')
 const gradientClass = computed(() => contentTheme.value === 'dark' ? 'from-[rgba(36,43,50,1)] via-[rgba(36,43,50,0.8)] to-transparent' : 'from-[rgba(255,255,255,1)] via-[rgba(255,255,255,0.8)] to-transparent')
+const commentThemeClass = computed(() => contentTheme.value === 'dark' 
+  ? 'bg-[rgba(36,43,50,0.95)] text-white rounded-lg p-3' 
+  : 'bg-white text-black rounded-lg p-3')
+const expandBtnClass = computed(() => contentTheme.value === 'dark'
+  ? 'bg-[rgba(36,43,50,0.95)] text-white hover:text-white border-none shadow-sm rounded-full'
+  : 'bg-white text-black hover:text-black border border-gray-300 shadow-sm rounded-full')
 
 const targetPage = ref('');
 const totalPages = computed(() => Math.ceil(message.total / 15));
@@ -1312,18 +1318,34 @@ const footerConfig = computed(() => ({
   border-radius: inherit;
 }
 
-/* 添加展开/折叠按钮样式 */
-button {
-  background: rgba(36, 43, 50, 0.95);
-  border: 1px solid rgba(251, 146, 60, 0.3);
+/* 添加展开/折叠按钮样式（按主题自适应） */
+.expand-toggle-btn {
   border-radius: 20px;
   position: relative;
   z-index: 9999;
 }
 
-button:hover {
+/* 暗黑模式按钮样式 */
+:global(html.dark) .expand-toggle-btn {
+  background: rgba(36, 43, 50, 0.95);
+  border: 1px solid rgba(251, 146, 60, 0.3);
+  color: #fff;
+}
+:global(html.dark) .expand-toggle-btn:hover {
   background: rgba(46, 53, 60, 0.95);
   border-color: rgba(251, 146, 60, 0.5);
+  cursor: pointer;
+}
+
+/* 白天模式按钮样式 */
+:global(html:not(.dark)) .expand-toggle-btn {
+  background: #fff;
+  border: 1px solid rgba(251, 146, 60, 0.4);
+  color: #111;
+}
+:global(html:not(.dark)) .expand-toggle-btn:hover {
+  background: #fff;
+  border-color: rgba(251, 146, 60, 0.6);
   cursor: pointer;
 }
 
@@ -1347,85 +1369,69 @@ button:hover {
   margin-top: auto;
   padding-top: 2rem;
 }
-/* 修改评论区样式 */
-:deep(.wl-comment) {
+/* 评论区样式（按主题自适应） */
+/* 暗黑模式 */
+:global(html.dark) :deep(.wl-comment) {
   background: rgba(36, 43, 50, 0.95) !important;
   border-radius: 8px;
   padding: 12px !important;
   margin-bottom: 12px !important;
 }
-/* 修改输入框文本颜色为黑色 */
-:deep(.wl-input) {
-  color: #fff !important;  /* 输入文字颜色保持白色 */
-  background-color: rgba(36, 43, 50, 0.95) !important; /* 输入框背景改为深色 */
-  border-color: rgba(251, 146, 60, 0.3) !important; /* 边框颜色调整 */
+:global(html.dark) :deep(.wl-input) {
+  color: #ffffff !important;
+  background-color: rgba(36, 43, 50, 0.95) !important;
+  border-color: rgba(251, 146, 60, 0.3) !important;
 }
-:deep(.wl-input::placeholder) {
-  color: rgba(255, 255, 255, 0.5) !important; /* placeholder文字颜色 */
+:global(html.dark) :deep(.wl-input::placeholder) { color: rgba(255, 255, 255, 0.5) !important; }
+:global(html.dark) :deep(.wl-editor) { background: rgba(36, 43, 50, 0.95) !important; color: #fff !important; }
+:global(html.dark) :deep(.wl-editor textarea) { 
+  color: #ffffff !important;
+  caret-color: #ffffff !important;
+  background-color: rgba(24, 28, 32, 0.95) !important;
 }
+:global(html.dark) :deep(.wl-content),
+:global(html.dark) :deep(.wl-content p),
+:global(html.dark) :deep(.wl-content *) { color: #fff !important; }
+:global(html.dark) :deep(.wl-comment .wl-meta .wl-like),
+:global(html.dark) :deep(.wl-comment .wl-meta .wl-reply) { color: #999 !important; }
+:global(html.dark) :deep(.wl-comment .wl-meta .wl-like:hover),
+:global(html.dark) :deep(.wl-comment .wl-meta .wl-reply:hover) { color: #fff !important; }
+:global(html.dark) :deep(.wl-btn) { background-color: rgba(251, 146, 60, 0.8) !important; color: #fff !important; }
+:global(html.dark) :deep(.wl-action) { color: #fff !important; }
+:global(html.dark) :deep(.wl-header) { border-bottom: 1px solid rgba(14, 14, 14, 0.2) !important; }
+:global(html.dark) :deep(.wl-card),
+:global(html.dark) :deep(.wl-panel) { background: rgba(36, 43, 50, 0.95) !important; border: 1px solid rgba(14, 14, 14, 0.2) !important; }
 
-:deep(.wl-editor) {
-  background: rgba(36, 43, 50, 0.95) !important;
-  color: #fff !important;
+/* 白天模式 */
+:global(html:not(.dark)) :deep(.wl-comment) {
+  background: #fff !important;
+  border-radius: 8px;
+  padding: 12px !important;
+  margin-bottom: 12px !important;
 }
-
-:deep(.wl-comment .wl-content) {
-  color: #fff !important;
-  background: transparent !important;
+:global(html:not(.dark)) :deep(.wl-input) {
+  color: #111 !important;
+  background-color: #fff !important;
+  border-color: rgba(0, 0, 0, 0.2) !important;
 }
-
-/* 确保评论内容为白色 */
-:deep(.wl-content),
-:deep(.wl-content p),
-:deep(.wl-content *) {
-  color: #fff !important;
+:global(html:not(.dark)) :deep(.wl-input::placeholder) { color: rgba(0, 0, 0, 0.5) !important; }
+:global(html:not(.dark)) :deep(.wl-editor) { background: #fff !important; color: #111 !important; }
+:global(html:not(.dark)) :deep(.wl-content),
+:global(html:not(.dark)) :deep(.wl-content p),
+:global(html:not(.dark)) :deep(.wl-content *) { color: #111 !important; }
+:global(html:not(.dark)) :deep(.wl-comment .wl-meta .wl-like),
+:global(html:not(.dark)) :deep(.wl-comment .wl-meta .wl-reply) { color: #666 !important; }
+:global(html:not(.dark)) :deep(.wl-comment .wl-meta .wl-like:hover),
+:global(html:not(.dark)) :deep(.wl-comment .wl-meta .wl-reply:hover) { color: #fb923c !important; }
+:global(html:not(.dark)) :deep(.wl-btn) {
+  background-color: #fff !important;
+  color: #111 !important;
+  border: 1px solid rgba(251, 146, 60, 0.4) !important;
 }
-/* 调整编辑器区域样式 */
-:deep(.wl-comment .wl-meta .wl-like),
-:deep(.wl-comment .wl-meta .wl-reply) {
-  color: #999 !important;
-}
-
-
-/* 调整输入框边框 */
-:deep(.wl-input-row) {
-  border-color: rgba(0, 0, 0, 0.1) !important;
-}
-:deep(.wl-comment .wl-meta .wl-like:hover),
-:deep(.wl-comment .wl-meta .wl-reply:hover) {
-  color: #fff !important;
-}
-
-/* 确保所有评论相关文本为白色 */
-:deep(.wl-comment *) {
-  color: #fff !important;
-}
-/* 调整按钮样式 */
-:deep(.wl-btn) {
-  background-color: rgba(251, 146, 60, 0.8) !important;
-  color: #fff !important;
-}
-
-:deep(.wl-action) {
-  color: #fff !important;
-}
-
-:deep(.wl-header) {
-  border-bottom: 1px solid rgba(14, 14, 14, 0.2) !important;
-}
-
-:deep(.wl-card) {
-  background: rgba(36, 43, 50, 0.95) !important;
-  border: 1px solid rgba(14, 14, 14, 0.2) !important;
-}
-/* 添加评论框样式 */
-:deep(.wl-panel),
-:deep(.wl-card) {
-  position: relative;
-  z-index: 100;
-  background: rgba(36, 43, 50, 0.95) !important;
-  border: 1px solid rgba(14, 14, 14, 0.2) !important;
-}
+:global(html:not(.dark)) :deep(.wl-action) { color: #222 !important; }
+:global(html:not(.dark)) :deep(.wl-header) { border-bottom: 1px solid rgba(0, 0, 0, 0.1) !important; }
+:global(html:not(.dark)) :deep(.wl-card),
+:global(html:not(.dark)) :deep(.wl-panel) { background: #fff !important; border: 1px solid rgba(0,0,0,0.1) !important; }
 
 /* 确保评论区域不会被遮挡 */
 .content-container {

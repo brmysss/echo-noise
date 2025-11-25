@@ -12,6 +12,10 @@ const props = defineProps({
     type: String,
     default: "",
   },
+  theme: {
+    type: String,
+    default: 'classic'
+  }
 });
 
 const emit = defineEmits(["update:modelValue"]);
@@ -84,6 +88,7 @@ onMounted(async () => {
     ...editorOptions,
     after: () => {
       vditorInstance?.setValue(props.modelValue);
+      vditorInstance?.setTheme(props.theme === 'dark' ? 'dark' : 'classic');
     },
   });
 });
@@ -106,6 +111,12 @@ defineExpose({
     }
   }
 });
+
+watch(() => props.theme, (newTheme) => {
+  if (vditorInstance) {
+    vditorInstance.setTheme(newTheme === 'dark' ? 'dark' : 'classic');
+  }
+});
 </script>
 
 <style>
@@ -113,9 +124,9 @@ defineExpose({
   border-radius: 8px;
   margin-bottom: 12px;
   position: relative;
-  overflow: hidden; /* 新增 */
+  overflow: visible;
   
-  position: relative; /* 添加相对定位 */
+  position: relative;
 }
 .vditor-content {
   position: relative;
@@ -146,7 +157,7 @@ defineExpose({
 .vditor-toolbar {
   display: flex;
   flex-wrap: nowrap;
-  overflow-x: auto;
+  overflow: visible;
   white-space: nowrap;
   -webkit-overflow-scrolling: touch;
   scrollbar-width: none;
@@ -182,12 +193,16 @@ defineExpose({
   border: 1px solid #e9ecef;
 }
 .vditor-hint {
-  position: fixed; /* 改为固定定位 */
+  position: fixed;
   z-index: 1000;
   background: #fff;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
   border-radius: 4px;
   border: 1px solid #e9ecef;
+}
+.vditor-tip, .vditor-tooltip {
+  position: fixed;
+  z-index: 1000;
 }
 .vditor-toolbar__item {
   flex-shrink: 0;
@@ -217,6 +232,41 @@ defineExpose({
 
 .vditor-reset {
   color: #e9ecef !important;
+}
+
+html.dark .vditor-container {
+  background-color: rgba(24, 28, 32, 0.2);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+html.dark .vditor-toolbar {
+  background-color: rgba(36, 43, 50, 0.5) !important;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08) !important;
+}
+
+html.dark .vditor-toolbar__item:hover {
+  background-color: rgba(255, 255, 255, 0.06);
+}
+
+html.dark .vditor-ir pre.vditor-reset {
+  color: #ffffff !important;
+}
+
+html.dark .vditor-toolbar {
+  color: #ffffff !important;
+}
+
+html.dark .vditor-hint {
+  background: rgba(36, 43, 50, 0.95);
+  color: #ffffff;
+  border-color: rgba(255, 255, 255, 0.1);
+}
+html.dark .vditor-tooltip, html.dark .vditor-tip {
+  color: #ffffff;
+}
+
+html.dark .vditor-preview {
+  background-color: rgba(24, 28, 32, 0.3) !important;
 }
 
 @media screen and (max-width: 520px) {

@@ -167,9 +167,13 @@ https://s2.loli.net/2025/03/27/y67m2k5xcSdTsHN.jpg`
             if config.PwaDescription == "" {
                 updates["pwa_description"] = config.Description
             }
-            if config.PwaIconURL == "" {
-                updates["pwa_icon_url"] = config.RSSFaviconURL
-            }
+			if config.PwaIconURL == "" {
+				updates["pwa_icon_url"] = config.RSSFaviconURL
+			}
+			// 默认内容主题
+			if config.ContentThemeDefault == "" {
+				updates["content_theme_default"] = "dark"
+			}
             
             if len(updates) > 0 {
                 if err := tx.Model(&config).Updates(updates).Error; err != nil {
@@ -208,6 +212,6 @@ https://s2.loli.net/2025/03/27/y67m2k5xcSdTsHN.jpg`
             }
         }
 
-        return nil
-    })
+		return nil
+	})
 }

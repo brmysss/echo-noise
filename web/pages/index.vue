@@ -79,7 +79,10 @@ provide('showHeatmap', showHeatmap);
 provide('contentTheme', contentTheme)
 provide('toggleContentTheme', () => {
   contentTheme.value = contentTheme.value === 'dark' ? 'light' : 'dark'
-  if (typeof window !== 'undefined') localStorage.setItem('contentTheme', contentTheme.value)
+  if (typeof window !== 'undefined') {
+    localStorage.setItem('contentTheme', contentTheme.value)
+    document.documentElement.className = contentTheme.value === 'dark' ? 'dark' : ''
+  }
 })
 
 // 添加监听，查看状态变化
@@ -206,6 +209,14 @@ const fetchConfig = async () => {
                     }
                 }
             });
+            // 应用默认内容主题
+            const defaultTheme = (settings.defaultContentTheme || 'dark').trim()
+            if (typeof window !== 'undefined' && !localStorage.getItem('contentTheme')) {
+              contentTheme.value = defaultTheme === 'light' ? 'light' : 'dark'
+              document.documentElement.className = contentTheme.value === 'dark' ? 'dark' : ''
+            } else if (typeof window !== 'undefined') {
+              document.documentElement.className = contentTheme.value === 'dark' ? 'dark' : ''
+            }
         }
 
         // 确保背景图片数组存在且有效
@@ -246,16 +257,18 @@ const preloadImages = async (images: string[]) => {
 }
 // 添加配置更新事件监听
 onMounted(() => {
-    window.addEventListener('frontend-config-updated', async (event: CustomEvent) => {
-        // 获取最新配置
+    window.addEventListener('frontend-config-updated', async (event: any) => {
+        const detail = event?.detail || {}
+        if (typeof detail.value === 'string' && detail.key === 'defaultContentTheme') {
+            if (typeof window !== 'undefined' && !localStorage.getItem('contentTheme')) {
+                contentTheme.value = detail.value === 'light' ? 'light' : 'dark'
+                document.documentElement.className = contentTheme.value === 'dark' ? 'dark' : ''
+            }
+        }
         await fetchConfig();
-        
-        // 如果背景图片列表已更新，随机选择一张新图片
         if (frontendConfig.value.backgrounds?.length > 0) {
             const randomIndex = Math.floor(Math.random() * frontendConfig.value.backgrounds.length);
             const newImage = frontendConfig.value.backgrounds[randomIndex];
-            
-            // 更新当前显示的图片
             currentImage.value = newImage;
         }
     });

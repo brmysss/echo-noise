@@ -63,8 +63,8 @@
                                 <UButton
                                     size="sm"
                                     @click="editUserInfo.username = !editUserInfo.username"
-                                    :color="editUserInfo.username ? 'gray' : 'primary'"
-                                    variant="soft"
+                                    :color="editUserInfo.username ? 'gray' : 'green'"
+                                    :variant="editUserInfo.username ? 'soft' : 'solid'"
                                 >
                                     {{ editUserInfo.username ? '取消' : '编辑' }}
                                 </UButton>
@@ -125,8 +125,8 @@
                                 <UButton
                                     size="sm"
                                     @click="editUserInfo.password = !editUserInfo.password"
-                                    :color="editUserInfo.password ? 'gray' : 'primary'"
-                                    variant="soft"
+                                    :color="editUserInfo.password ? 'gray' : 'green'"
+                                    :variant="editUserInfo.password ? 'soft' : 'solid'"
                                 >
                                     {{ editUserInfo.password ? '取消' : '编辑' }}
                                 </UButton>
@@ -218,6 +218,22 @@
                         </div>
                     </div>
 
+                    <!-- 默认主题色设置 -->
+                    <div class="flex items-center bg-gray-800 rounded p-3 mb-4 justify-between">
+                        <span class="text-white">默认主题色</span>
+                        <div class="flex items-center gap-4">
+                            <div class="flex items-center">
+                                <URadio v-model="frontendConfig.defaultContentTheme" value="dark" class="mr-2" />
+                                <span :class="frontendConfig.defaultContentTheme === 'dark' ? 'text-white' : 'text-gray-400'">暗黑</span>
+                            </div>
+                            <div class="flex items-center">
+                                <URadio v-model="frontendConfig.defaultContentTheme" value="light" class="mr-2" />
+                                <span :class="frontendConfig.defaultContentTheme === 'light' ? 'text-white' : 'text-gray-400'">白天</span>
+                            </div>
+                            <UButton color="green" @click="saveConfigItem('defaultContentTheme')">保存</UButton>
+                        </div>
+                    </div>
+
                     <!-- 配置展示/编辑表单 -->
                     <div class="space-y-4">
                         <div v-for="(label, key) in configLabels" :key="key" class="bg-gray-800 rounded p-3">
@@ -226,8 +242,8 @@
                                 <UButton
                                     size="sm"
                                     @click="editItem[key] = !editItem[key]"
-                                    :color="editItem[key] ? 'gray' : 'primary'"
-                                    variant="soft"
+                                    :color="editItem[key] ? 'gray' : 'green'"
+                                    :variant="editItem[key] ? 'soft' : 'solid'"
                                 >
                                     {{ editItem[key] ? '取消' : '编辑' }}
                                 </UButton>
@@ -332,6 +348,7 @@
             </UButton>
             <UButton
                 color="warning"
+                variant="solid"
                 icon="i-heroicons-arrow-up-tray"
                 @click="triggerDatabaseUpload"
             >
@@ -824,6 +841,7 @@ const frontendConfig = reactive({
     pwaTitle: '',
     pwaDescription: '',
     pwaIconURL: '',
+    defaultContentTheme: 'dark',
 })
 
 // GitHub 链接卡片解析开关的双向绑定（与 frontendConfig.enableGithubCard 同步）
@@ -892,6 +910,7 @@ const defaultConfig = {
     pwaTitle: '',
     pwaDescription: '',
     pwaIconURL: ''
+    ,defaultContentTheme: 'dark'
 }
 // 添加单个配置项保存方法
 
@@ -992,20 +1011,25 @@ const saveConfigItem = async (key: string) => {
             editItem[key] = false;
             // 重新获取配置
             await fetchConfig();
-            const label = configLabels[key] || (key === 'pwa' ? 'PWA 设置' : key)
+            const label = key === 'defaultContentTheme' ? '默认主题色' : (configLabels[key] || (key === 'pwa' ? 'PWA 设置' : key))
             useToast().add({
                 title: '成功',
                 description: `${label}已更新`,
                 color: 'green'
             });
+            if (key === 'defaultContentTheme') {
+                const theme = (frontendConfig.defaultContentTheme || 'dark').trim();
+                // 不触发任何前端切换，仅在后续首次加载时生效
+            }
         } else {
             throw new Error(data.msg || '保存失败');
         }
     } catch (error: any) {
         console.error('保存配置失败:', error);
+        const label = key === 'defaultContentTheme' ? '默认主题色' : (configLabels[key] || key)
         useToast().add({
-            title: '错误',
-            description: error.message || '配置更新失败',
+            title: '失败',
+            description: `${label}保存失败`,
             color: 'red'
         });
     }

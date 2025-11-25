@@ -461,6 +461,7 @@ func UpdateSetting(c *gin.Context) {
 				"pwaTitle":       config.PwaTitle,
 				"pwaDescription": config.PwaDescription,
 				"pwaIconURL":     config.PwaIconURL,
+				"defaultContentTheme": config.ContentThemeDefault,
 			}
 		}
 	} else {
@@ -521,6 +522,9 @@ func UpdateSetting(c *gin.Context) {
 		}
 		if setting.FrontendSettings.PwaIconURL != nil {
 			frontendSettings["pwaIconURL"] = *setting.FrontendSettings.PwaIconURL
+		}
+		if setting.FrontendSettings.DefaultContentTheme != nil {
+			frontendSettings["defaultContentTheme"] = *setting.FrontendSettings.DefaultContentTheme
 		}
 	}
 

@@ -50,6 +50,8 @@ func GetFrontendConfig() (map[string]interface{}, error) {
 			"pwaTitle":       choose(config.PwaTitle, config.SiteTitle),
 			"pwaDescription": choose(config.PwaDescription, config.Description),
 			"pwaIconURL":     choose(config.PwaIconURL, config.RSSFaviconURL),
+			// 默认内容主题
+			"defaultContentTheme": choose(config.ContentThemeDefault, "dark"),
 		},
 	}
 	return configMap, nil
@@ -144,6 +146,13 @@ func UpdateFrontendSetting(userID uint, settingMap map[string]interface{}) error
 		config.PwaIconURL = v
 	}
 
+	// 默认内容主题
+	if v, ok := frontendSettings["defaultContentTheme"].(string); ok {
+		if v == "dark" || v == "light" {
+			config.ContentThemeDefault = v
+		}
+	}
+
 	// 处理背景图片列表
 	if backgrounds, ok := frontendSettings["backgrounds"].([]interface{}); ok {
 		backgroundsList := make([]string, 0, len(backgrounds))
@@ -231,10 +240,11 @@ func getDefaultConfig() map[string]interface{} {
 			"walineServerURL":  "请前往waline官网https://waline.js.org查看部署配置",
 			"enableGithubCard": false,
 			// PWA 设置默认值
-			"pwaEnabled":     true,
-			"pwaTitle":       "",
-			"pwaDescription": "",
-			"pwaIconURL":     "",
+			"pwaEnabled":          true,
+			"pwaTitle":            "",
+			"pwaDescription":      "",
+			"pwaIconURL":          "",
+			"defaultContentTheme": "dark",
 		},
 	}
 }
