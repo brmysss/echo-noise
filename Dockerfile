@@ -6,7 +6,7 @@ WORKDIR /app/web
 
 # 复制前端依赖文件并安装依赖
 COPY ./web/package.json ./web/package-lock.json* ./
-RUN npm install --production
+RUN npm ci --omit=dev
 
 # 复制前端源代码并构建
 COPY ./web/ .
@@ -31,10 +31,6 @@ RUN apk add --no-cache gcc musl-dev
 COPY ./go.mod ./go.sum ./
 RUN go mod download
 
-# 添加数据库驱动依赖
-RUN go get -u gorm.io/driver/mysql && \
-    go get -u gorm.io/driver/postgres
-
 # 复制项目文件
 COPY ./cmd ./cmd
 COPY ./internal ./internal
@@ -45,10 +41,13 @@ COPY ./config ./config
 RUN mkdir -p /app/data /app/public && chmod -R 755 /app/data
 
 # 编译 Go 应用
-RUN go build -o /app/noise ./cmd/server/main.go
+RUN go build -trimpath -ldflags "-s -w" -o /app/noise ./cmd/server/main.go
 
 # 运行时阶段
-FROM alpine:latest AS final
+FROM alpine:3.20 AS final
+
+# 可选：是否使用 UPX 压缩二进制（1=启用，0=禁用）
+ARG USE_UPX=1
 
 # 设置工作目录
 WORKDIR /app
@@ -60,6 +59,18 @@ COPY --from=backend-build /app/noise /app/noise
 # 从前端构建阶段复制静态文件
 COPY --from=frontend-build /app/public /app/public
 
+# 按需裁剪静态字体：保留仅在 CSS 中引用的 woff2
+RUN set -eux; \
+    if [ -d /app/public/_nuxt ]; then \
+      cd /app/public/_nuxt; \
+      ls *.woff2 >/dev/null 2>&1 || exit 0; \
+      grep -Eoh '[A-Za-z0-9._-]+\.woff2' -- *.css 2>/dev/null | sort -u > keep.list || true; \
+      for f in *.woff2; do \
+        grep -qx "$f" keep.list || rm -f "$f"; \
+      done; \
+      rm -f keep.list; \
+    fi
+
 
 # 更换 Alpine 镜像源
 RUN echo "https://mirrors.aliyun.com/alpine/v3.22/main" > /etc/apk/repositories && \
@@ -67,18 +78,21 @@ RUN echo "https://mirrors.aliyun.com/alpine/v3.22/main" > /etc/apk/repositories 
 
 # 安装运行时所需的工具
 RUN apk update && \
-    apk add --no-cache \
-        ca-certificates \
-        postgresql-client \
-        mysql-client && \
+    apk add --no-cache ca-certificates && \
     rm -rf /var/cache/apk/*
 
 # 创建数据和图片目录
 RUN mkdir -p /app/data/images && \
     chmod -R 755 /app/data
 
-# 复制数据库文件到运行时目录（如果使用 SQLite）
+# 内置 SQLite 数据库（初始数据），以便首次启动有内容
 COPY ./data/noise.db /app/data/
+
+# 可选：使用 UPX 压缩二进制以减小体积（默认启用，影响极小）
+RUN if [ "$USE_UPX" = "1" ]; then \
+      apk add --no-cache upx; \
+      upx -q /app/noise || true; \
+    fi
 
 # 暴露应用端口
 EXPOSE 1314

@@ -10,7 +10,7 @@
 
 
 
-
+- [安装部署](#安装部署)
 
 <details>
 <summary>✅ 整体改版优化</summary>
@@ -183,6 +183,35 @@
 ## 安装部署
 
 ## 前后端分离
+
+快速指引
+
+1) 生成前端静态文件
+
+```bash
+cd web
+npm run generate
+```
+
+生成产物输出到 `web/.output/public`。
+
+2) 同步静态文件到后端 `./public`
+
+```bash
+rsync -a --delete .output/public/ ../public/
+# 或者
+cp -r .output/public ../
+```
+
+后端静态服务读取 `./public` 目录，见 `internal/routers/routers.go:62`。
+
+3) 一键执行
+
+```bash
+bash scripts/build.sh
+```
+
+完成后访问 `http://localhost:1314/`，接口位于同域的 `/api/*`。
 
 <details>
 <summary>✅ 部署步骤【点击展开】</summary>
@@ -1323,8 +1352,9 @@ exports.actions = [{
 - [x] 加入标签路由及组件
 - [x] 加入一键推送
 - [x] 内容区域切换亮暗模式
-- [ ] 精简镜像单一版本
-- [ ] MCP模式（搜索、写入）
+- [ ] 精简镜像包体积大小
+- [ ] 内容置顶功能
+- [ ] MCP模式（搜索、写入）AI发布写入
 - [ ] 页面加载过渡优化
 - [ ] 跨平台桌面端
 - [ ] 后台ui优化定制

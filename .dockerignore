@@ -5,6 +5,27 @@ node_modules/
 .git/
 
 # 忽略 macOS 的系统文件
+.gitignore
 .DS_Store
 
+**/.DS_Store
+**/*.log
 web/dist/
+
+# Frontend build caches
+web/node_modules/
+web/.nuxt/
+web/.output/
+web/.cache/
+
+# Unrelated tools/assets not needed in image
+chromeExpand/
+htmlwidgets/
+
+# Large runtime assets should come from volumes
+data/images/
+data/video/
+
+# Temp
+tmp/
+**/tmp/
