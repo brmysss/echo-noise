@@ -547,7 +547,7 @@ watch(() => contentTheme && contentTheme.value, () => {
   text-shadow: -1px -1px 0 rgba(0,0,0,0.6), 1px -1px 0 rgba(0,0,0,0.6), -1px 1px 0 rgba(0,0,0,0.6), 1px 1px 0 rgba(0,0,0,0.6);
 }
 .theme-light.markdown-preview :deep(p) {
-  text-shadow: -1px -1px 0 rgba(255,255,255,0.7), 1px -1px 0 rgba(255,255,255,0.7), -1px 1px 0 rgba(255,255,255,0.7), 1px 1px 0 rgba(255,255,255,0.7);
+  text-shadow: none;
 }
 /* 白天模式下内容区链接颜色加深为深橙色 */
 .theme-light.markdown-preview :deep(a) {
@@ -562,11 +562,11 @@ watch(() => contentTheme && contentTheme.value, () => {
 }
 
 .theme-light.markdown-preview :deep(a) {
-  background-color: rgba(255,255,255,0.65);
-  padding: 0 3px;
-  border-radius: 4px;
-  border: 1px solid rgba(251,146,60,0.35);
-  text-shadow: -1px -1px 0 rgba(255,255,255,0.7), 1px -1px 0 rgba(255,255,255,0.7), -1px 1px 0 rgba(255,255,255,0.7), 1px 1px 0 rgba(255,255,255,0.7);
+  background-color: transparent;
+  padding: 0;
+  border-radius: 0;
+  border: none;
+  text-shadow: none;
 }
 .github-card-loading {
   font-style: italic;

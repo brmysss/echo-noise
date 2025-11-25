@@ -5,6 +5,7 @@ export interface Message {
     image_url?: string;
     private: boolean;
     created_at: string;
+    pinned?: boolean;
 }
 
 export interface MessageToSave {

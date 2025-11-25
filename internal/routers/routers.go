@@ -8,7 +8,6 @@ import (
 	"github.com/gin-contrib/cors"
 	"github.com/gin-contrib/static"
 	"github.com/gin-gonic/gin"
-	"github.com/lin-snow/ech0/config"
 	"github.com/lin-snow/ech0/internal/controllers"
 	"github.com/lin-snow/ech0/internal/middleware"
 	"github.com/lin-snow/ech0/pkg"
@@ -21,7 +20,28 @@ func SetupRouter() *gin.Engine {
 	pkg.InitSession(r)
 	// 配置 CORS
 	corsConfig := cors.DefaultConfig()
-	corsConfig.AllowOriginFunc = func(origin string) bool { return true }
+	// 动态按环境变量或放通所有来源（支持反代与跨域小组件）
+	var allowList []string
+	if origins := os.Getenv("CORS_ORIGINS"); origins != "" {
+		for _, o := range strings.Split(origins, ",") {
+			s := strings.TrimSpace(o)
+			if s != "" {
+				allowList = append(allowList, s)
+			}
+		}
+	}
+	if len(allowList) == 0 {
+		corsConfig.AllowOriginFunc = func(origin string) bool { return true }
+	} else {
+		corsConfig.AllowOriginFunc = func(origin string) bool {
+			for _, o := range allowList {
+				if origin == o {
+					return true
+				}
+			}
+			return false
+		}
+	}
 	corsConfig.AllowHeaders = []string{
 		"Origin",
 		"Content-Type",
@@ -29,32 +49,15 @@ func SetupRouter() *gin.Engine {
 		"Accept",
 		"Device-Type",
 		"Authorization", // 新增授权头
+		"Cache-Control",
+		"Pragma",
+		"Referer",
 	}
 	corsConfig.AllowMethods = []string{"GET", "POST", "PUT", "PATCH", "DELETE", "HEAD", "OPTIONS"}
 	corsConfig.AllowCredentials = true
 	corsConfig.MaxAge = 86400
 
-	allowed := []string{"http://localhost:3000", "http://127.0.0.1:3000"}
-	if origins := os.Getenv("CORS_ORIGINS"); origins != "" {
-		// 支持以逗号分隔的多个来源
-		var list []string
-		for _, o := range strings.Split(origins, ",") {
-			s := strings.TrimSpace(o)
-			if s != "" {
-				list = append(list, s)
-			}
-		}
-		if len(list) > 0 {
-			allowed = list
-		}
-	}
-
-	// 在开发模式下，限定来源为本地前端；生产下建议通过环境变量配置
-	if config.Config.Server.Mode == "debug" {
-		corsConfig.AllowOrigins = allowed
-	} else {
-		corsConfig.AllowOrigins = allowed
-	}
+	// 不再使用 AllowOrigins 列表，统一使用 AllowOriginFunc 做灵活匹配
 
 	r.Use(cors.New(corsConfig))
 
@@ -112,6 +115,7 @@ func SetupRouter() *gin.Engine {
 	{
 		messages.POST("", controllers.PostMessage)
 		messages.PUT("/:id", controllers.UpdateMessage)
+		messages.PUT("/:id/pin", controllers.UpdateMessagePinned)
 		messages.DELETE("/:id", controllers.DeleteMessage)
 	}
 	// 添加推送配置路由

@@ -28,6 +28,7 @@ type Message struct {
 	UserID    uint      `gorm:"not null;index" json:"user_id"`
 	CreatedAt time.Time `json:"created_at"`
 	Notify    bool      `gorm:"default:false" json:"notify"` // 新增推送通知字段
+	Pinned    bool      `gorm:"default:false" json:"pinned"`
 }
 
 type User struct {
@@ -65,30 +66,32 @@ type Setting struct {
 }
 
 type SiteConfig struct {
-    gorm.Model
-    SiteTitle        string `gorm:"type:varchar(100)"`
-    SubtitleText     string `gorm:"type:varchar(191)"`
-    AvatarURL        string `gorm:"type:varchar(191)"`
-    Username         string `gorm:"type:varchar(50)"`
-    Description      string `gorm:"type:varchar(191)"`
-    Backgrounds      string `gorm:"type:text"`
-    CardFooterTitle  string `gorm:"type:varchar(100)"`
-    CardFooterLink   string `gorm:"type:varchar(100)"`
-    PageFooterHTML   string `gorm:"type:text"`
-    RSSTitle         string `gorm:"type:varchar(100)"`
-    RSSDescription   string `gorm:"type:varchar(191)"`
-    RSSAuthorName    string `gorm:"type:varchar(50)"`
-    RSSFaviconURL    string `gorm:"type:varchar(191)"`
-    WalineServerURL  string `gorm:"type:varchar(191)"`
-    EnableGithubCard bool   `gorm:"default:false"`
-    // PWA 配置
-    PwaEnabled     bool   `gorm:"default:true"`
-    PwaTitle       string `gorm:"type:varchar(100)"`
-    PwaDescription string `gorm:"type:varchar(191)"`
-    PwaIconURL     string `gorm:"type:varchar(191)"`
-    // 主题默认模式: dark 或 light
-    ContentThemeDefault string `gorm:"type:varchar(10)"`
-    Version        int    `json:"version"`
+	gorm.Model
+	SiteTitle        string `gorm:"type:varchar(100)"`
+	SubtitleText     string `gorm:"type:varchar(191)"`
+	AvatarURL        string `gorm:"type:varchar(191)"`
+	Username         string `gorm:"type:varchar(50)"`
+	Description      string `gorm:"type:varchar(191)"`
+	Backgrounds      string `gorm:"type:text"`
+	CardFooterTitle  string `gorm:"type:varchar(100)"`
+	CardFooterLink   string `gorm:"type:varchar(100)"`
+	PageFooterHTML   string `gorm:"type:text"`
+	RSSTitle         string `gorm:"type:varchar(100)"`
+	RSSDescription   string `gorm:"type:varchar(191)"`
+	RSSAuthorName    string `gorm:"type:varchar(50)"`
+	RSSFaviconURL    string `gorm:"type:varchar(191)"`
+	WalineServerURL  string `gorm:"type:varchar(191)"`
+	EnableGithubCard bool   `gorm:"default:false"`
+	// PWA 配置
+	PwaEnabled     bool   `gorm:"default:true"`
+	PwaTitle       string `gorm:"type:varchar(100)"`
+	PwaDescription string `gorm:"type:varchar(191)"`
+	PwaIconURL     string `gorm:"type:varchar(191)"`
+	// 主题默认模式: dark 或 light
+	ContentThemeDefault string `gorm:"type:varchar(10)"`
+	AnnouncementText    string `gorm:"type:varchar(191)"`
+	AnnouncementEnabled bool   `gorm:"default:true"`
+	Version             int    `json:"version"`
 }
 
 func (s *SiteConfig) GetBackgroundsList() []string {

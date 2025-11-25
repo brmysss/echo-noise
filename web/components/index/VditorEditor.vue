@@ -94,7 +94,14 @@ onMounted(async () => {
 });
 
 onBeforeUnmount(() => {
-  vditorInstance?.destroy();
+  try {
+    if (vditorInstance) {
+      vditorInstance.destroy();
+      vditorInstance = null;
+    }
+  } catch (e) {
+    console.warn('Vditor destroy error', e);
+  }
 });
 
 defineExpose({

@@ -2,7 +2,7 @@ import type { Response } from "~/types/models";
 import { useUserStore } from "~/store/user";
 import { useToast } from "#imports";
 
-export const postRequest = async <T>(url: string, body: object | FormData) => {
+export const postRequest = async <T>(url: string, body: object | FormData, options?: { credentials?: RequestCredentials }) => {
     const BASE_API = useRuntimeConfig().public.baseApi;
     const userStore = useUserStore();
     const token = userStore.token || "null";
@@ -20,6 +20,7 @@ export const postRequest = async <T>(url: string, body: object | FormData) => {
             method: 'POST',
             headers,
             body: isFormData ? body : JSON.stringify(body),
+            credentials: options?.credentials
         });
 
         return response;
@@ -29,7 +30,7 @@ export const postRequest = async <T>(url: string, body: object | FormData) => {
     }
 };
 
-export const getRequest = async <T>(url: string, params?: any) => {
+export const getRequest = async <T>(url: string, params?: any, options?: { credentials?: RequestCredentials }) => {
     const BASE_API = useRuntimeConfig().public.baseApi;
     const userStore = useUserStore();
     const token = userStore.token || "null";
@@ -43,17 +44,23 @@ export const getRequest = async <T>(url: string, params?: any) => {
                 'Authorization': `${token}`,
                 'Cache-Control': 'no-cache',
                 'Pragma': 'no-cache'
-            }
+            },
+            credentials: options?.credentials
         });
 
         return response;
     } catch (error) {
+        const e: any = error;
+        const status = e?.response?.status || e?.status;
+        if (status === 401) {
+            return { code: 0, msg: 'Unauthorized' } as any as Response<T>;
+        }
         console.error('请求失败:', error);
         throw error;
     }
 };
 
-export const putRequest = async <T>(url: string, body: object) => {
+export const putRequest = async <T>(url: string, body: object, options?: { credentials?: RequestCredentials }) => {
     const BASE_API = useRuntimeConfig().public.baseApi;
     const toast = useToast();
     const userStore = useUserStore();
@@ -66,7 +73,8 @@ export const putRequest = async <T>(url: string, body: object) => {
                 'Content-Type': 'application/json',
                 'Authorization': `${token}`,
             },
-            body: JSON.stringify(body)
+            body: JSON.stringify(body),
+            credentials: options?.credentials
         });
 
         if (response.code !== 1) {
@@ -87,7 +95,7 @@ export const putRequest = async <T>(url: string, body: object) => {
     }
 };
 
-export const deleteRequest = async <T>(url: string, params?: any) => {
+export const deleteRequest = async <T>(url: string, params?: any, options?: { credentials?: RequestCredentials }) => {
     const BASE_API = useRuntimeConfig().public.baseApi;
     const userStore = useUserStore();
     const token = userStore.token || "null";
@@ -99,7 +107,8 @@ export const deleteRequest = async <T>(url: string, params?: any) => {
             method: 'DELETE',
             headers: {
                 'Authorization': `${token}`,
-            }
+            },
+            credentials: options?.credentials
         });
 
         return response;

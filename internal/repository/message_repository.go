@@ -13,16 +13,16 @@ import (
 func GetAllMessages(showPrivate bool) ([]models.Message, error) {
 	var messages []models.Message
 
-	// 是否将私密内容也查询出来
-	if showPrivate {
-		if err := database.DB.Order("created_at DESC").Find(&messages).Error; err != nil {
-			return nil, err
-		}
-	} else {
-		if err := database.DB.Where("private = ?", false).Find(&messages).Error; err != nil {
-			return nil, err
-		}
-	}
+    // 是否将私密内容也查询出来（置顶优先）
+    if showPrivate {
+        if err := database.DB.Order("pinned DESC, created_at DESC").Find(&messages).Error; err != nil {
+            return nil, err
+        }
+    } else {
+        if err := database.DB.Where("private = ?", false).Order("pinned DESC, created_at DESC").Find(&messages).Error; err != nil {
+            return nil, err
+        }
+    }
 
 	return messages, nil
 }

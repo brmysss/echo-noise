@@ -52,6 +52,9 @@ func GetFrontendConfig() (map[string]interface{}, error) {
 			"pwaIconURL":     choose(config.PwaIconURL, config.RSSFaviconURL),
 			// 默认内容主题
 			"defaultContentTheme": choose(config.ContentThemeDefault, "dark"),
+			// 公告栏
+			"announcementText":    choose(config.AnnouncementText, "欢迎访问我的说说笔记！"),
+			"announcementEnabled": config.AnnouncementEnabled,
 		},
 	}
 	return configMap, nil
@@ -130,6 +133,19 @@ func UpdateFrontendSetting(userID uint, settingMap map[string]interface{}) error
 			config.EnableGithubCard = true
 		} else if vs == "false" {
 			config.EnableGithubCard = false
+		}
+	}
+	// 公告栏
+	if v, ok := frontendSettings["announcementText"].(string); ok {
+		config.AnnouncementText = v
+	}
+	if vb, ok := frontendSettings["announcementEnabled"].(bool); ok {
+		config.AnnouncementEnabled = vb
+	} else if vs, ok := frontendSettings["announcementEnabled"].(string); ok {
+		if vs == "true" {
+			config.AnnouncementEnabled = true
+		} else if vs == "false" {
+			config.AnnouncementEnabled = false
 		}
 	}
 	// PWA 设置
@@ -245,6 +261,8 @@ func getDefaultConfig() map[string]interface{} {
 			"pwaDescription":      "",
 			"pwaIconURL":          "",
 			"defaultContentTheme": "dark",
+			"announcementText":    "欢迎访问我的说说笔记！",
+			"announcementEnabled": true,
 		},
 	}
 }

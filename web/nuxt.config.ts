@@ -57,10 +57,16 @@ export default defineNuxtConfig({
   // 添加以下配置
   nitro: {
     preset: 'node-server',
+    devProxy: {
+      '/api': {
+        target: 'http://localhost:1315/api',
+        changeOrigin: true
+      }
+    },
     routeRules: {
       '/**': {
         headers: {
-          'Content-Security-Policy': "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval' https:; style-src 'self' 'unsafe-inline' https:; img-src 'self' data: https: http:; font-src 'self' https:; connect-src 'self' https:; frame-src 'self' https:;"
+          'Content-Security-Policy': "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval' https:; style-src 'self' 'unsafe-inline' https:; img-src 'self' data: https: http:; font-src 'self' https:; connect-src 'self' http: https:; frame-src 'self' https:;"
         }
       }
     }
@@ -70,6 +76,10 @@ export default defineNuxtConfig({
   },
   experimental: {
     payloadExtraction: false
+  },
+  devServer: {
+    port: 1314,
+    host: 'localhost'
   },
   ssr: false,
 })

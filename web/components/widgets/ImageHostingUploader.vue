@@ -1,6 +1,6 @@
 <template>
   <div 
-    class="fixed z-50 bg-black/80 backdrop-blur-sm rounded-lg shadow-lg p-4 text-white"
+    class="fixed z-[5000] bg-black/80 backdrop-blur-sm rounded-lg shadow-lg p-4 text-white"
     :style="getPopupPosition"
     @mousedown="startDrag"
     @touchstart="startDrag"

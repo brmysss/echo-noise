@@ -37,6 +37,7 @@
       @tagClick="handleTagClick"
       @updateTags="handleTagsUpdate" 
     />
+    <AnnouncementBar v-if="frontendConfig.announcementEnabled && (frontendConfig.announcementText || '').trim() !== ''" :text="frontendConfig.announcementText || '欢迎访问我的说说笔记！'" />
         <!-- 确保 MessageList 有足够的 z-index -->
       <MessageList 
       ref="messageList" 
@@ -53,16 +54,20 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, inject, provide, onMounted, onUnmounted, watch, useRoute } from 'vue' // 添加 provide
+import { ref, computed, inject, provide, onMounted, onUnmounted, watch } from 'vue'
+import { useRoute } from '#imports'
 import AddForm from '@/components/index/AddForm.vue'
 import MessageList from '@/components/index/MessageList.vue'
 import Notification from '~/components/widgets/Notification.vue';
 import HeatmapWidget from '~/components/widgets/heatmap.vue'
 import SearchMode from '~/components/index/Searchmode.vue' // 导入 SearchMode 组件
 import TagList from '~/components/index/TagList.vue'
+import AnnouncementBar from '~/components/widgets/AnnouncementBar.vue'
 
 // 添加 messageList ref
 const messageList = ref(null)
+// 修复：定义 targetMessageId，避免模板引用未定义导致列表不渲染
+const targetMessageId = ref<string | null>(null)
 // 添加搜索结果处理函数
 const handleSearchResult = (result: any) => {
   console.log('接收到搜索结果:', result); // 添加调试日志
@@ -73,7 +78,7 @@ const handleSearchResult = (result: any) => {
 }
 // 注入从AddForm组件提供的showHeatmap变量
 const showHeatmap = ref(false);
-const contentTheme = ref<string>(typeof window !== 'undefined' ? (localStorage.getItem('contentTheme') || 'dark') : 'dark')
+const contentTheme = ref<string>(typeof window !== 'undefined' ? (localStorage.getItem('contentTheme') || 'light') : 'light')
 // 提供给子组件
 provide('showHeatmap', showHeatmap);
 provide('contentTheme', contentTheme)
@@ -98,6 +103,12 @@ useHead({
     }
   ]
 })
+// 同步路由中的消息ID到 MessageList，用于高亮或定位
+const route = useRoute()
+watch(() => route.hash, (newHash) => {
+  const id = (newHash || '').split('/messages/').pop()
+  targetMessageId.value = id || null
+}, { immediate: true })
 
 // 添加前端配置的响应式对象
 const frontendConfig = ref({
@@ -119,7 +130,9 @@ const frontendConfig = ref({
     pwaEnabled: true,
     pwaTitle: '',
     pwaDescription: '',
-    pwaIconURL: ''
+    pwaIconURL: '',
+    announcementText: '',
+    announcementEnabled: true
 })
 
 const backgroundStyle = computed(() => ({
@@ -157,7 +170,7 @@ const defaultConfig = {
     ],
     cardFooterTitle: 'Noise·说说·笔记~',
     cardFooterSubtitle: 'note.noisework.cn',
-    pageFooterHTML: '<div class="text-center text-xs text-gray-400 py-4">来自<a href="https://www.noisework.cn" target="_blank" rel="noopener noreferrer" class="text-orange-400 hover:text-orange-500">Noise</a> 使用<a href="https://github.com/lin-snow/Ech0" target="_blank" rel="noopener noreferrer" class="text-orange-400 hover:text-orange-500">Ech0</a>发布</div>',
+    pageFooterHTML: '<div class="text-center text-xs text-gray-400 py-4">来自<a href="https://www.noisework.cn" target="_blank" rel="noopener noreferrer" class="text-orange-400 hover:text-orange-500">Noise</a> 使用<a href="https://github.com/rcy1314/echo-noise" target="_blank" rel="noopener noreferrer" class="text-orange-400 hover:text-orange-500">Ech0-Noise</a>发布</div>',
     rssTitle: 'Noise的说说笔记',
     rssDescription: '一个说说笔记~',
     rssAuthorName: 'Noise',
@@ -169,6 +182,8 @@ const defaultConfig = {
     pwaDescription: '',
     pwaIconURL: '',
     walineServerURL: 'https://s9cewscb.lc-cn-n1-shared.com'
+    ,announcementText: '欢迎访问我的说说笔记！'
+    ,announcementEnabled: true
 };
 
 // 修改 fetchConfig 方法
@@ -177,7 +192,7 @@ const fetchConfig = async () => {
         // 先设置默认值
         frontendConfig.value = { ...defaultConfig };
         
-        const response = await fetch('/api/frontend/config', {
+        const response = await fetch(`${useRuntimeConfig().public.baseApi}/frontend/config`, {
             credentials: 'include',
             headers: {
                 'Cache-Control': 'no-cache',
@@ -195,7 +210,7 @@ const fetchConfig = async () => {
         if (data?.data?.frontendSettings) {
             const settings = data.data.frontendSettings;
             // 更新配置
-            const booleanKeys = ['enableGithubCard', 'pwaEnabled']
+            const booleanKeys = ['enableGithubCard', 'pwaEnabled', 'announcementEnabled']
             Object.keys(frontendConfig.value).forEach(key => {
                 if (settings[key] !== null && settings[key] !== undefined) {
                     if (key === 'backgrounds' && Array.isArray(settings[key])) {
@@ -210,7 +225,7 @@ const fetchConfig = async () => {
                 }
             });
             // 应用默认内容主题
-            const defaultTheme = (settings.defaultContentTheme || 'dark').trim()
+            const defaultTheme = (settings.defaultContentTheme || 'light').trim()
             if (typeof window !== 'undefined' && !localStorage.getItem('contentTheme')) {
               contentTheme.value = defaultTheme === 'light' ? 'light' : 'dark'
               document.documentElement.className = contentTheme.value === 'dark' ? 'dark' : ''
@@ -256,23 +271,7 @@ const preloadImages = async (images: string[]) => {
   await Promise.all(images.map(src => loadImage(src)))
 }
 // 添加配置更新事件监听
-onMounted(() => {
-    window.addEventListener('frontend-config-updated', async (event: any) => {
-        const detail = event?.detail || {}
-        if (typeof detail.value === 'string' && detail.key === 'defaultContentTheme') {
-            if (typeof window !== 'undefined' && !localStorage.getItem('contentTheme')) {
-                contentTheme.value = detail.value === 'light' ? 'light' : 'dark'
-                document.documentElement.className = contentTheme.value === 'dark' ? 'dark' : ''
-            }
-        }
-        await fetchConfig();
-        if (frontendConfig.value.backgrounds?.length > 0) {
-            const randomIndex = Math.floor(Math.random() * frontendConfig.value.backgrounds.length);
-            const newImage = frontendConfig.value.backgrounds[randomIndex];
-            currentImage.value = newImage;
-        }
-    });
-});
+// 移除重复绑定的 frontend-config-updated 监听，避免多次拉取导致卡顿
 
 onUnmounted(() => {
     // 移除事件监听
@@ -316,26 +315,43 @@ definePageMeta({
 })
 
 // 设置动态标题
+let headUpdateTimer: any = null
+const scheduleHeadUpdate = () => {
+  if (headUpdateTimer) clearTimeout(headUpdateTimer)
+  headUpdateTimer = setTimeout(() => updateTitle(), 100)
+}
 const updateTitle = () => {
   const title = (frontendConfig.value.pwaTitle || frontendConfig.value.siteTitle || '说说笔记').trim()
-  const icon = '/favicon.ico'
+  const icon = (frontendConfig.value.rssFaviconURL || '/favicon.ico').trim()
+  const pwaIcon = (
+    frontendConfig.value.pwaIconURL && frontendConfig.value.pwaIconURL.trim() !== ''
+      ? frontendConfig.value.pwaIconURL.trim()
+      : (icon.toLowerCase().endsWith('.png') ? icon : '/android-chrome-192x192.png')
+  )
   const description = (frontendConfig.value.pwaDescription || frontendConfig.value.description || '').trim()
   useHead({
     title,
     meta: [
-      { name: 'description', content: description },
-      { name: 'theme-color', content: '#000000' }
+      { key: 'description', name: 'description', content: description },
+      { key: 'theme-color', name: 'theme-color', content: '#000000' }
     ],
     link: [
-      { rel: 'icon', href: icon },
-      ...(frontendConfig.value.pwaEnabled ? [{ rel: 'manifest', href: '/site.webmanifest' }] : [])
+      { key: 'icon-32', rel: 'icon', type: 'image/png', href: '/favicon-32x32.png', sizes: '32x32' },
+      { key: 'shortcut-icon-32', rel: 'shortcut icon', type: 'image/png', href: '/favicon-32x32.png', sizes: '32x32' },
+      { key: 'icon-fallback', rel: 'icon', href: icon },
+      ...(frontendConfig.value.pwaEnabled ? [
+        { key: 'manifest', rel: 'manifest', href: '/manifest.webmanifest' },
+        { key: 'apple-touch', rel: 'apple-touch-icon', href: pwaIcon, sizes: '180x180' },
+        { key: 'pwa-192', rel: 'icon', href: pwaIcon, sizes: '192x192' },
+        { key: 'pwa-512', rel: 'icon', href: (pwaIcon.toLowerCase().endsWith('.png') ? pwaIcon : '/android-chrome-512x512.png'), sizes: '512x512' }
+      ] : [])
     ]
   })
 }
 
 // 监听配置变化
 watch(() => [frontendConfig.value.pwaEnabled, frontendConfig.value.pwaTitle, frontendConfig.value.pwaIconURL, frontendConfig.value.pwaDescription, frontendConfig.value.siteTitle, frontendConfig.value.rssFaviconURL, frontendConfig.value.description], () => {
-  updateTitle()
+  scheduleHeadUpdate()
 }, { immediate: true })
 const subtitleEl = ref<HTMLElement | null>(null)
   const tags = ref([])
@@ -414,6 +430,10 @@ const startTypeEffect = () => {
   let isWaiting = false
   
   const typeInterval = setInterval(() => {
+    if (!subtitleEl.value) {
+      clearInterval(typeInterval)
+      return
+    }
     if (isWaiting) return
 
     if (!isDeleting) {
@@ -490,6 +510,14 @@ onMounted(async () => {
           isLoaded.value = true; // 在高质量图片加载完成后设置为已加载
         })
       }
+      img.onerror = () => {
+        // 若加载失败，直接结束加载遮罩，避免阻塞交互
+        isLoaded.value = true
+      }
+      // 最长等待时间到达后也结束加载遮罩，避免卡顿
+      setTimeout(() => {
+        if (!isLoaded.value) isLoaded.value = true
+      }, 2000)
     }
     
     // 启动打字效果
@@ -523,8 +551,8 @@ html, body {
   padding: 0;
   width: 100%;
   height: 100%;
-  overflow: hidden; /* 防止滚动条出现 */
-  overscroll-behavior: none; /* 防止橡皮筋效果 */
+  overflow: hidden;
+  overscroll-behavior: none;
 }
 .header-subtitle {
   position: absolute;
@@ -533,7 +561,7 @@ html, body {
   transform: translate(-50%, -50%);
   color: white;
   font-size: 1rem;
-  text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.5);
+  text-shadow: none;
   white-space: nowrap;
 }
 
@@ -544,17 +572,15 @@ html, body {
   }
 }
 .background-container {
-  min-height: 100vh;
-  width: 100%;  /* 移除 vw 单位 */
-  position: fixed;  /* 改为 fixed */
+  width: 100%;
+  position: fixed;
   top: 0;
   left: 0;
   right: 0;
   bottom: 0;
-  overflow-y: auto;  /* 允许内容滚动 */
-  overflow: hidden; /* 禁止背景容器滚动 */
-  background-color: black; 
-  z-index: -1; /* 确保背景在最底层 */
+  overflow: hidden;
+  z-index: 0;
+  background-color: black;
 }
 
 .background-container::before {
@@ -573,14 +599,15 @@ html, body {
 }
 
 .content-wrapper {
-  position: relative;
+  position: absolute;
   top: 0;
   left: 0;
   right: 0;
-  height: auto;
-  min-height: 100vh;
-  overflow-y: auto; /* 允许内容区域滚动 */
-  overscroll-behavior: contain; /* 防止滚动穿透 */
+  height: 100vh;
+  overflow-y: auto;
+  z-index: 1;
+  pointer-events: auto;
+  cursor: default;
 }
 
 .moments-header {
@@ -609,7 +636,7 @@ html, body {
   color: white;
   font-size: 2.5rem;
   font-weight: bold;
-  text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.5);
+  text-shadow: none;
   margin: 0;
   white-space: nowrap;
   transition: font-size 0.3s ease;
@@ -631,17 +658,23 @@ html, body {
   .background-container::before {
     filter: blur(4px); /* 减少模糊度提升性能 */
     background-attachment: scroll; /* 移动端使用普通滚动 */
+    transform: scale(1.08);
   }
   
   .content-wrapper {
     overscroll-behavior: contain;
-    position: relative; /* 移动端改为相对定位 */
-    height: auto;
-    min-height: 100vh;
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 100vh;
+    overflow-y: auto;
+    z-index: 1;
+    pointer-events: auto;
   }
   
   .background-container {
-    position: absolute; /* 移动端改为绝对定位 */
+    position: fixed;
   }
 }
 @media screen and (max-width: 768px) {
@@ -705,7 +738,7 @@ html, body {
 font-size: 1.2rem;
 font-weight: bold;
 color: #fcfafb;  
-text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.5);
+text-shadow: none;
 white-space: nowrap;  /* 防止换行 */
 
 }
@@ -713,7 +746,7 @@ white-space: nowrap;  /* 防止换行 */
 .profile-text .description {
   font-size: 0.9rem;
   color: #fcfafb; 
-  text-shadow: 1px 1px 3px rgba(0, 0, 0, 0.5);
+  text-shadow: none;
   white-space: nowrap;
   opacity: 0.95;
 }
@@ -727,7 +760,10 @@ white-space: nowrap;  /* 防止换行 */
   z-index: 1;
   box-sizing: border-box;
   overflow-x: hidden;
+  cursor: default;
 }
+
+.message-list-container { cursor: default; }
 
 .loading {
   position: fixed;
@@ -750,7 +786,7 @@ white-space: nowrap;  /* 防止换行 */
 .loading-text {
   font-size: 16px;
   color: #fff; /* 更改文字颜色 */
-  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.5);
+  text-shadow: none;
 }
 
 .rainbow-spinner {
@@ -777,16 +813,8 @@ white-space: nowrap;  /* 防止换行 */
 }
 
 .container-fixed {
-  backdrop-filter: blur(4px);
-  border-radius: 8px;
-  margin: 0 auto;
-  max-width: 1200px;
-  width: 100%;
-  position: relative;
-  /* 降低 container 的 z-index，确保不会遮挡评论框 */
-  z-index: 1;
-  box-sizing: border-box;
-  overflow: visible; /* 修改为 visible，允许评论框溢出 */
+  min-height: 100vh;
+  pointer-events: auto;
 }
 
 /* 确保背景不会遮挡评论框 */
@@ -799,30 +827,5 @@ white-space: nowrap;  /* 防止换行 */
   border-radius: 8px;
   padding: 1rem;
   margin-bottom: 1rem;
-}
-.background-container {
-  position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  overflow: hidden; /* 禁止背景滚动 */
-  z-index: 0; /* 调整为0 */
-}
-
-.content-wrapper {
-  position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  height: 100vh;
-  overflow-y: auto;
-  z-index: 1; /* 确保内容在背景之上 */
-  pointer-events: auto; /* 确保内容可点击 */
-}
-
-.container-fixed {
-  min-height: 100vh; /* 确保容器足够高 */
-  pointer-events: auto; /* 确保内容可点击 */
 }
 </style>

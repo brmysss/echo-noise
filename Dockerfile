@@ -10,6 +10,9 @@ COPY ./web/package.json ./web/package-lock.json* ./
 RUN npm config set registry https://registry.npmmirror.com && \
     npm ci --omit=dev --registry=https://registry.npmmirror.com
 
+# 更新 Browserslist 数据，避免 caniuse-lite 过期警告
+RUN npx --yes update-browserslist-db@latest
+
 # 复制前端源代码并构建
 COPY ./web/ .
 RUN npm run generate

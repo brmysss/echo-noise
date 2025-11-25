@@ -64,20 +64,20 @@ func GetMessagesByPage(page, pageSize int, userID *uint, isAdmin bool) (dto.Page
 	var messages []models.Message
 	var total int64
 
-	if isAdmin {
-		// 管理员查看全部
-		database.DB.Model(&models.Message{}).Count(&total)
-		database.DB.Limit(pageSize).Offset(offset).Order("created_at DESC").Find(&messages)
-	} else if userID != nil {
-		// 普通登录用户：公开的 + 自己的私密
-		query := database.DB.Model(&models.Message{}).Where("private = ? OR user_id = ?", false, *userID)
-		query.Count(&total)
-		query.Limit(pageSize).Offset(offset).Order("created_at DESC").Find(&messages)
-	} else {
-		// 未登录用户：仅公开
-		database.DB.Model(&models.Message{}).Where("private = ?", false).Count(&total)
-		database.DB.Limit(pageSize).Offset(offset).Where("private = ?", false).Order("created_at DESC").Find(&messages)
-	}
+    if isAdmin {
+        // 管理员查看全部，置顶优先
+        database.DB.Model(&models.Message{}).Count(&total)
+        database.DB.Limit(pageSize).Offset(offset).Order("pinned DESC, created_at DESC").Find(&messages)
+    } else if userID != nil {
+        // 普通登录用户：公开的 + 自己的私密
+        query := database.DB.Model(&models.Message{}).Where("private = ? OR user_id = ?", false, *userID)
+        query.Count(&total)
+        query.Limit(pageSize).Offset(offset).Order("pinned DESC, created_at DESC").Find(&messages)
+    } else {
+        // 未登录用户：仅公开
+        database.DB.Model(&models.Message{}).Where("private = ?", false).Count(&total)
+        database.DB.Limit(pageSize).Offset(offset).Where("private = ?", false).Order("pinned DESC, created_at DESC").Find(&messages)
+    }
 
 	// 返回结果
 	return dto.PageQueryResult{Total: total, Items: messages}, nil
@@ -257,7 +257,23 @@ func UpdateMessage(messageID uint, content string) error {
 		return fmt.Errorf("更新消息失败: %v", err)
 	}
 
-	return nil
+    return nil
+}
+
+// UpdateMessagePinned 更新消息置顶状态
+func UpdateMessagePinned(messageID uint, pinned bool) error {
+    message, err := repository.GetMessageByID(messageID, true)
+    if err != nil {
+        return fmt.Errorf("获取消息失败: %v", err)
+    }
+    if message == nil {
+        return fmt.Errorf("消息不存在")
+    }
+    message.Pinned = pinned
+    if err := database.DB.Save(message).Error; err != nil {
+        return fmt.Errorf("更新置顶状态失败: %v", err)
+    }
+    return nil
 }
 func GetMessagesGroupByDate() ([]struct {
 	Date  string `json:"date"`

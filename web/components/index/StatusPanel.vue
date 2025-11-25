@@ -193,7 +193,7 @@
                             </div>
                             <div>
                                 <label class="text-gray-300 text-sm mb-1 block">PWA 图标</label>
-                                <UInput :model-value="'/favicon.ico'" disabled />
+                                <UInput v-model="frontendConfig.pwaIconURL" :placeholder="'/favicon.ico'" />
                             </div>
                             <div class="md:col-span-2">
                                 <label class="text-gray-300 text-sm mb-1 block">PWA 描述</label>
@@ -215,6 +215,14 @@
                                 <span :class="!githubCardEnabled ? 'text-white' : 'text-gray-400'">关闭</span>
                             </div>
                             <UButton color="green" @click="saveGithubCardConfig">保存</UButton>
+                        </div>
+                    </div>
+                    <!-- 公告栏开关（独立设置） -->
+                    <div class="flex items-center bg-gray-800 rounded p-3 mb-4 justify-between">
+                        <span class="text-white">公告栏开关</span>
+                        <div class="flex items-center gap-4">
+                            <UToggle v-model="frontendConfig.announcementEnabled" />
+                            <UButton color="green" @click="saveConfigItem('announcementEnabled')">保存</UButton>
                         </div>
                     </div>
 
@@ -518,6 +526,7 @@ const saveRegisterConfig = async () => {
 
 const userStore = useUserStore()
 const { login, register, logout } = useUser()
+const router = useRouter()
 const userToken = ref('')
 const versionInfo = reactive({
     checking: false,
@@ -670,33 +679,21 @@ const copyToken = async () => {
 // 添加退出登录处理函数
 const handleLogout = async () => {
     try {
-        // 先调用后端退出接口
         const response = await fetch('/api/user/logout', {
             method: 'POST',
-            credentials: 'include' // 确保携带cookie
+            credentials: 'include'
         })
-        
-        if (!response.ok) {
-            throw new Error('退出请求失败')
+        const data = await response.json().catch(() => ({}))
+        if (!response.ok || data.code !== 1) {
+            throw new Error(data?.msg || '退出失败')
         }
-
-        // 清除前端状态
-        userStore.$reset()
-        
-        // 强制刷新页面以确保所有状态被清除
-        window.location.reload()
-        
-        useToast().add({
-            title: '成功',
-            description: '已退出登录',
-            color: 'green'
-        })
+        userStore.clearUserStatus()
+        useToast().add({ title: '成功', description: '已退出登录', color: 'green' })
+        router.push('/')
     } catch (error) {
-        useToast().add({
-            title: '错误',
-            description: '退出登录失败',
-            color: 'red'
-        })
+        userStore.clearUserStatus()
+        useToast().add({ title: '成功', description: '已退出登录', color: 'green' })
+        router.push('/')
     }
 }
 // 状态变量
@@ -817,7 +814,8 @@ const configLabels = {
     rssDescription: 'RSS 描述',
     rssAuthorName: 'RSS 作者',
     rssFaviconURL: 'RSS 图标链接',
-    walineServerURL: 'Waline 评论服务器地址' 
+    walineServerURL: 'Waline 评论服务器地址',
+    announcementText: '公告栏文本'
 }
 
 const frontendConfig = reactive({
@@ -842,6 +840,8 @@ const frontendConfig = reactive({
     pwaDescription: '',
     pwaIconURL: '',
     defaultContentTheme: 'dark',
+    announcementText: '',
+    announcementEnabled: true,
 })
 
 // GitHub 链接卡片解析开关的双向绑定（与 frontendConfig.enableGithubCard 同步）
@@ -872,7 +872,8 @@ const editItem = reactive({
     rssDescription: false,
     rssAuthorName: false,
     rssFaviconURL: false,
-    walineServerURL: false // 新增
+    walineServerURL: false,
+    announcementText: false
 })
 
 // 更新默认配置
@@ -911,6 +912,8 @@ const defaultConfig = {
     pwaDescription: '',
     pwaIconURL: ''
     ,defaultContentTheme: 'dark'
+    ,announcementText: '欢迎访问我的说说笔记！'
+    ,announcementEnabled: true
 }
 // 添加单个配置项保存方法
 
@@ -937,7 +940,7 @@ const fetchConfig = async () => {
             const settings = data.data.frontendSettings;
             
             // 遍历配置项进行更新（布尔型键需强制转换）
-            const booleanKeys = ['enableGithubCard', 'pwaEnabled']
+            const booleanKeys = ['enableGithubCard', 'pwaEnabled', 'announcementEnabled']
             Object.keys(frontendConfig).forEach(key => {
                 if (key === 'backgrounds') {
                     const serverBackgrounds = settings[key];
@@ -962,7 +965,7 @@ const fetchConfig = async () => {
 
             // 自动应用到页面 Head（标题、描述、图标）
             const title = (frontendConfig.pwaTitle || frontendConfig.siteTitle || '说说笔记').trim()
-            const icon = (frontendConfig.pwaIconURL || frontendConfig.rssFaviconURL || '/favicon.ico').trim()
+            const icon = (frontendConfig.rssFaviconURL || '/favicon.ico').trim()
             const description = (frontendConfig.pwaDescription || frontendConfig.description || '').trim()
             useHead({
                 title,
@@ -1011,12 +1014,22 @@ const saveConfigItem = async (key: string) => {
             editItem[key] = false;
             // 重新获取配置
             await fetchConfig();
-            const label = key === 'defaultContentTheme' ? '默认主题色' : (configLabels[key] || (key === 'pwa' ? 'PWA 设置' : key))
-            useToast().add({
-                title: '成功',
-                description: `${label}已更新`,
-                color: 'green'
-            });
+            // 特殊提示：公告开关
+            if (key === 'announcementEnabled') {
+                const enabled = !!frontendConfig.announcementEnabled
+                useToast().add({
+                    title: '成功',
+                    description: enabled ? '已开启公告' : '已关闭公告',
+                    color: enabled ? 'green' : 'gray'
+                })
+            } else {
+                const label = key === 'defaultContentTheme' ? '默认主题色' : (configLabels[key] || (key === 'pwa' ? 'PWA 设置' : key))
+                useToast().add({
+                    title: '成功',
+                    description: `${label}已更新`,
+                    color: 'green'
+                })
+            }
             if (key === 'defaultContentTheme') {
                 const theme = (frontendConfig.defaultContentTheme || 'dark').trim();
                 // 不触发任何前端切换，仅在后续首次加载时生效
@@ -1106,7 +1119,7 @@ const saveGithubCardConfig = async () => {
 
 const applyPWAConfig = () => {
     const title = (frontendConfig.pwaTitle || frontendConfig.siteTitle || '说说笔记')
-    const icon = (frontendConfig.pwaIconURL || frontendConfig.rssFaviconURL || '/favicon.ico')
+    const icon = (frontendConfig.rssFaviconURL || '/favicon.ico')
     const description = (frontendConfig.pwaDescription || frontendConfig.description || '')
 
     useHead({

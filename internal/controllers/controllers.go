@@ -457,11 +457,13 @@ func UpdateSetting(c *gin.Context) {
 				"walineServerURL":  config.WalineServerURL,
 				"enableGithubCard": config.EnableGithubCard,
 				// PWA 设置（直接从数据库配置）
-				"pwaEnabled":     config.PwaEnabled,
-				"pwaTitle":       config.PwaTitle,
-				"pwaDescription": config.PwaDescription,
-				"pwaIconURL":     config.PwaIconURL,
+				"pwaEnabled":          config.PwaEnabled,
+				"pwaTitle":            config.PwaTitle,
+				"pwaDescription":      config.PwaDescription,
+				"pwaIconURL":          config.PwaIconURL,
 				"defaultContentTheme": config.ContentThemeDefault,
+				"announcementText":    config.AnnouncementText,
+				"announcementEnabled": config.AnnouncementEnabled,
 			}
 		}
 	} else {
@@ -526,6 +528,12 @@ func UpdateSetting(c *gin.Context) {
 		if setting.FrontendSettings.DefaultContentTheme != nil {
 			frontendSettings["defaultContentTheme"] = *setting.FrontendSettings.DefaultContentTheme
 		}
+		if setting.FrontendSettings.AnnouncementText != "" {
+			frontendSettings["announcementText"] = setting.FrontendSettings.AnnouncementText
+		}
+		if setting.FrontendSettings.AnnouncementEnabled != nil {
+			frontendSettings["announcementEnabled"] = *setting.FrontendSettings.AnnouncementEnabled
+		}
 	}
 
 	settingMap := map[string]interface{}{
@@ -569,7 +577,8 @@ func GetWebManifest(c *gin.Context) {
 	}
 	title := "说说笔记"
 	description := ""
-	icon := "/favicon.ico"
+	// 站点图标（浏览器 favicon）与 PWA 图标分离，优先使用后台设置
+	siteIcon := "/favicon.ico"
 
 	if pwaEnabled {
 		if v, ok := fs["pwaTitle"].(string); ok && v != "" {
@@ -577,9 +586,6 @@ func GetWebManifest(c *gin.Context) {
 		}
 		if v, ok := fs["pwaDescription"].(string); ok {
 			description = v
-		}
-		if v, ok := fs["pwaIconURL"].(string); ok && v != "" {
-			icon = v
 		}
 	}
 	if title == "说说笔记" {
@@ -592,12 +598,30 @@ func GetWebManifest(c *gin.Context) {
 			description = v
 		}
 	}
-	if icon == "/favicon.ico" {
-		if v, ok := fs["rssFaviconURL"].(string); ok && v != "" {
-			icon = v
-		}
+	if v, ok := fs["rssFaviconURL"].(string); ok && v != "" {
+		siteIcon = v
 	}
 
+	// PWA 图标选择：优先 pwaIconURL；否则当站点图标为 PNG 时复用；否则回退到默认 192 PNG
+	pwaIcon := "/android-chrome-192x192.png"
+	if v, ok := fs["pwaIconURL"].(string); ok && v != "" {
+		pwaIcon = v
+	} else if strings.HasSuffix(strings.ToLower(siteIcon), ".png") {
+		pwaIcon = siteIcon
+	}
+
+	// favicon 类型
+	icon := siteIcon
+	iconType := "image/x-icon"
+	if strings.HasSuffix(strings.ToLower(icon), ".png") {
+		iconType = "image/png"
+	}
+
+	// 计算 PWA 图标 sizes
+	pwa192Sizes := "192x192"
+	if !strings.HasSuffix(strings.ToLower(pwaIcon), "192x192.png") {
+		pwa192Sizes = "any"
+	}
 	manifest := map[string]interface{}{
 		"name":             title,
 		"short_name":       title,
@@ -607,10 +631,20 @@ func GetWebManifest(c *gin.Context) {
 		"background_color": "#000000",
 		"theme_color":      "#000000",
 		"icons": []map[string]string{
-			{"src": icon, "sizes": "any", "type": "image/x-icon"},
-			{"src": "/android-chrome-192x192.png", "sizes": "192x192", "type": "image/png"},
-			{"src": "/android-chrome-512x512.png", "sizes": "512x512", "type": "image/png"},
-			{"src": "/apple-touch-icon.png", "sizes": "180x180", "type": "image/png"},
+			{"src": icon, "sizes": "any", "type": iconType},
+			{"src": pwaIcon, "sizes": pwa192Sizes, "type": "image/png", "purpose": "any maskable"},
+			{"src": func() string {
+				if strings.HasSuffix(strings.ToLower(pwaIcon), ".png") {
+					return pwaIcon
+				}
+				return "/android-chrome-512x512.png"
+			}(), "sizes": "512x512", "type": "image/png", "purpose": "any maskable"},
+			{"src": func() string {
+				if strings.HasSuffix(strings.ToLower(pwaIcon), ".png") {
+					return pwaIcon
+				}
+				return "/apple-touch-icon.png"
+			}(), "sizes": "180x180", "type": "image/png"},
 		},
 	}
 
@@ -674,6 +708,65 @@ func UpdateMessage(c *gin.Context) {
 	// 更新消息
 	if err := services.UpdateMessage(uint(messageID), req.Content); err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"code": 0, "msg": err.Error()})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"code": 1, "msg": "更新成功"})
+}
+
+// 更新消息置顶状态
+func UpdateMessagePinned(c *gin.Context) {
+	id := c.Param("id")
+	if id == "" {
+		c.JSON(http.StatusBadRequest, gin.H{"code": 0, "msg": "消息ID不能为空"})
+		return
+	}
+
+	// 身份校验
+	userID, exists := c.Get("user_id")
+	if !exists {
+		c.JSON(http.StatusUnauthorized, gin.H{"code": 0, "msg": "未授权访问"})
+		return
+	}
+
+	// 请求体
+	var req struct {
+		Pinned bool `json:"pinned"`
+	}
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"code": 0, "msg": "请求参数错误"})
+		return
+	}
+
+	// 解析ID
+	messageID, err := strconv.ParseUint(id, 10, 64)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"code": 0, "msg": "无效的消息ID"})
+		return
+	}
+
+	// 获取用户信息
+	user, err := services.GetUserByID(userID.(uint))
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"code": 0, "msg": "获取用户信息失败"})
+		return
+	}
+
+	// 获取消息并校验权限
+	message, err := services.GetMessageByID(uint(messageID), true)
+	if err != nil {
+		c.JSON(http.StatusNotFound, gin.H{"code": 0, "msg": "消息不存在"})
+		return
+	}
+
+	if !user.IsAdmin && message.UserID != userID.(uint) {
+		c.JSON(http.StatusForbidden, gin.H{"code": 0, "msg": "无权限操作该消息"})
+		return
+	}
+
+	// 更新置顶状态
+	if err := services.UpdateMessagePinned(uint(messageID), req.Pinned); err != nil {
+		c.JSON(http.StatusOK, gin.H{"code": 0, "msg": err.Error()})
 		return
 	}
 

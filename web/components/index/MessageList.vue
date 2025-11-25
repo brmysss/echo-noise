@@ -34,13 +34,15 @@
         <div v-for="msg in displayMessages" :key="msg.id" class="w-full h-auto overflow-hidden flex flex-col justify-between">
            <!-- 修改头部布局 -->
            <div class="flex justify-between items-center">
-            <!-- 时间部分保持不变 -->
             <div class="flex justify-start items-center h-auto overflow-x-auto whitespace-nowrap hide-scrollbar">
   <div class="w-2 h-2 rounded-full bg-orange-600 mr-2 flex-shrink-0"></div>
-  <div class="flex justify-start text-sm">
+  <div class="flex justify-start items-center text-sm">
     <span class="text-orange-500">{{ formatDate(msg.created_at) }}</span>
     <span class="gradient-dot mx-2 flex-shrink-0">@</span>
     <span class="text-orange-500">{{ msg.username || '匿名用户' }}</span>
+    <div v-if="msg.pinned" class="flex items-center text-orange-500 flex-shrink-0 ml-1" title="置顶">
+      <UIcon name="i-mdi-pin" class="w-4 h-4" />
+    </div>
   </div>
 </div>
             <!-- 优化操作按钮组样式 -->
@@ -48,6 +50,9 @@
             <!-- ... 按钮内容 ... -->
               <div v-if="msg.private" class="w-5 h-5 flex-shrink-0 transition-transform duration-200 hover:scale-110">
                 <UIcon name="i-mdi-lock-outline" class="text-gray-400" />
+              </div>
+              <div v-if="canPin(msg)" class="w-5 h-5 cursor-pointer flex-shrink-0 transition-all duration-200 hover:scale-110" @click="togglePin(msg)" :title="msg.pinned ? '取消置顶' : '置顶内容'">
+                <UIcon :name="msg.pinned ? 'i-mdi-pin' : 'i-mdi-pin-outline'" class="text-gray-400 hover:text-orange-500" />
               </div>
               <div v-if="isLogin" class="w-5 h-5 cursor-pointer flex-shrink-0 transition-all duration-200 hover:scale-110" @click="editMessage(msg)" :title="'编辑内容'">
                 <UIcon name="i-mdi-pencil-outline" class="text-gray-400 hover:text-orange-500" />
@@ -69,6 +74,7 @@
 
           <div class="border-l-2 border-gray-300 p-4 ml-1">
             <div class="content-container" :class="listThemeClass" v-if="msg.image_url || msg.content" :data-msg-id="msg.id">
+              
               <!-- 图片内容 -->
               <img 
   v-if="msg.image_url" 
@@ -111,7 +117,7 @@
       color="gray" 
       variant="ghost" 
       size="xs" 
-      :class="['rounded-full px-4 py-1.5 border-none shadow-lg hover:shadow-xl transition-all duration-300 backdrop-blur-sm', pagerBtnClass]"
+      :class="['rounded-full px-4 py-1.5 shadow-lg hover:shadow-xl transition-all duration-300 backdrop-blur-sm', pagerBtnClass]"
       @click="loadPreviousPage"
       :disabled="isPageLoading"
     >
@@ -124,7 +130,7 @@
       color="gray" 
       variant="ghost" 
       size="xs" 
-      :class="['rounded-full px-4 py-1.5 border-none shadow-lg hover:shadow-xl transition-all duration-300 backdrop-blur-sm', pagerBtnClass]"
+      :class="['rounded-full px-4 py-1.5 shadow-lg hover:shadow-xl transition-all duration-300 backdrop-blur-sm', pagerBtnClass]"
       @click="loadNextPage"
       :disabled="isPageLoading"
     >
@@ -166,7 +172,7 @@
     <!-- 来源信息 - 固定在底部 -->
     <div v-if="!siteConfig.pageFooterHTML" class="text-center text-xs text-gray-400 py-4">
     来自<a href="https://www.noisework.cn" target="_blank" rel="noopener noreferrer" class="text-orange-400 hover:text-orange-500">Noise</a> 
-    使用<a href="https://github.com/lin-snow/Ech0" target="_blank" rel="noopener noreferrer" class="text-orange-400 hover:text-orange-500">Ech0</a>发布
+    使用<a href="https://github.com/rcy1314/echo-noise" target="_blank" rel="noopener noreferrer" class="text-orange-400 hover:text-orange-500">Ech0-Noise</a>发布
   </div>
   <div v-else v-html="siteConfig.pageFooterHTML"></div>
 </div>
@@ -225,8 +231,8 @@ const expandBtnClass = computed(() => contentTheme.value === 'dark'
   ? 'bg-[rgba(36,43,50,0.95)] text-white hover:text-white border-none shadow-sm rounded-full'
   : 'bg-white text-black hover:text-black border border-gray-300 shadow-sm rounded-full')
 const pagerBtnClass = computed(() => contentTheme.value === 'dark'
-  ? 'bg-[rgba(36,43,50,0.35)] text-white hover:text-white hover:bg-[rgba(36,43,50,0.45)] active:bg-[rgba(36,43,50,0.5)] focus:bg-[rgba(36,43,50,0.45)]'
-  : 'bg-[rgba(24,28,32,0.25)] text-white hover:text-white hover:bg-[rgba(24,28,32,0.35)] active:bg-[rgba(24,28,32,0.4)] focus:bg-[rgba(24,28,32,0.35)]')
+  ? 'bg-[rgba(36,43,50,0.75)] text-white hover:text-white hover:bg-[rgba(36,43,50,0.85)] active:bg-[rgba(36,43,50,0.9)] focus:bg-[rgba(36,43,50,0.85)] border border-white/70'
+  : 'bg-[rgba(24,28,32,0.6)] text-white hover:text-white hover:bg-[rgba(24,28,32,0.7)] active:bg-[rgba(24,28,32,0.75)] focus:bg-[rgba(24,28,32,0.7)] border border-white/70')
 
 const targetPage = ref('');
 const totalPages = computed(() => Math.ceil(message.total / 15));
@@ -311,7 +317,6 @@ const openInNewTab = (url: string) => {
 // 修改标签点击处理函数
 const handleTagClick = async (tag: string) => {
   try {
-    // 确保 tag 被正确编码
     const encodedTag = encodeURIComponent(tag.trim());
     const response = await fetch(`${BASE_API}/messages/tags/${encodedTag}`, {
       credentials: 'include',
@@ -319,17 +324,13 @@ const handleTagClick = async (tag: string) => {
         'Accept': 'application/json'
       }
     });
-    
     if (!response.ok) {
       throw new Error(`HTTP error! status: ${response.status}`);
     }
-    
     const data = await response.json();
-    
     if (data.code === 1 && Array.isArray(data.data)) {
       isSearchMode.value = true;
       searchResults.value = data.data;
-      
       await nextTick();
       checkContentHeight();
       initFancybox();
@@ -454,7 +455,7 @@ const toggleComment = async (msgId: number) => {
         window.Waline.init({
           el: `#waline-${msgId}`,
           serverURL: props.siteConfig.walineServerURL,
-          path: 'messages/${msgId}',
+          path: `messages/${msgId}`,
           reaction: false,
           meta: ["nick", "mail", "link"],
           requiredMeta: ["mail", "nick"],
@@ -474,6 +475,28 @@ const toggleComment = async (msgId: number) => {
     } else {
       console.error("Waline 未加载");
     }
+  }
+};
+
+// 置顶权限：作者或管理员
+const canPin = (msg: any) => {
+  if (!isLogin.value) return false;
+  const user = userStore.user as any;
+  if (!user) return false;
+  const isAdmin = !!(user.IsAdmin || user.is_admin);
+  const isAuthor = (user.ID || user.userid) === msg.user_id;
+  return isAdmin || isAuthor;
+};
+
+const togglePin = async (msg: any) => {
+  try {
+    const next = !msg.pinned;
+    const res = await message.setPinned(msg.id, next);
+    if (res) {
+      useToast().add({ title: next ? '已置顶' : '已取消置顶', color: 'green', timeout: 1500 });
+    }
+  } catch (e) {
+    useToast().add({ title: '操作失败', color: 'red', timeout: 2000 });
   }
 };
 
@@ -568,19 +591,17 @@ onMounted(async () => {
 
     // 根据是否有消息ID来决定加载方式
     if (messageId) {
-      const response = await fetch(`${BASE_API}/messages/${messageId}`, {
-        credentials: 'include',
-        headers: {
-          'Accept': 'application/json'
-        }
-      });
-      
-      if (!response.ok) throw new Error('消息加载失败');
-      
-      const data = await response.json();
-      if (data.code === 1 && data.data) {
-        // 设置单条消息模式
-        message.messages = [data.data];
+    const response = await fetch(`${BASE_API}/messages/${messageId}`, {
+      credentials: 'include',
+      headers: {
+        'Accept': 'application/json'
+      }
+    });
+    if (!response.ok) throw new Error('消息加载失败');
+    const data = await response.json();
+    if (data.code === 1 && data.data) {
+      // 设置单条消息模式
+      message.messages = [data.data];
         message.hasMore = false;
         message.page = 1;
         
@@ -595,10 +616,21 @@ onMounted(async () => {
     } else {
       // 只有在非消息详情页时才加载列表
       if (!route.hash.includes('/messages/')) {
-        await message.getMessages({
-          page: 1,
-          pageSize: 15,
+        const response = await fetch(`${BASE_API}/messages/page`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
+          credentials: 'include',
+          body: JSON.stringify({ page: 1, pageSize: 15 })
         });
+        if (response.ok) {
+          const data = await response.json();
+          if (data.code === 1 && data.data) {
+            message.messages = data.data.items || [];
+            message.total = data.data.total || 0;
+            message.hasMore = (message.messages.length < message.total);
+            message.page = 1;
+          }
+        }
       }
     }
 
@@ -627,10 +659,21 @@ watch(() => route.hash, async (newHash) => {
   // 如果没有消息ID且不是从消息详情页返回，则加载列表
   if (!messageId) {
     if (!route.hash.includes('/messages/')) {
-      await message.getMessages({
-        page: 1,
-        pageSize: 15,
+      const response = await fetch(`${BASE_API}/messages/page`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({ page: 1, pageSize: 15 })
       });
+      if (response.ok) {
+        const data = await response.json();
+        if (data.code === 1 && data.data) {
+          message.messages = data.data.items || [];
+          message.total = data.data.total || 0;
+          message.hasMore = (message.messages.length < message.total);
+          message.page = 1;
+        }
+      }
     }
     return;
   }
@@ -642,9 +685,7 @@ watch(() => route.hash, async (newHash) => {
         'Accept': 'application/json'
       }
     });
-    
     if (!response.ok) throw new Error('消息加载失败');
-    
     const data = await response.json();
     if (data.code === 1 && data.data) {
       message.messages = [data.data];

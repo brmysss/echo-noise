@@ -406,7 +406,8 @@ const saveConfigItem = async (type: string) => {
             customHttpBody: localConfig.customHttpBody
         };
 
-        const response = await fetch('/api/notify/config', {
+        const baseApi = useRuntimeConfig().public.baseApi || '/api'
+        const response = await fetch(`${baseApi}/notify/config`, {
             method: 'PUT',
             headers: {
                 'Content-Type': 'application/json'

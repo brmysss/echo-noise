@@ -162,6 +162,29 @@ const getMessages = async (query: PageQuery) => {
     }
   };
 
+  // 按ID获取单条消息
+  const getMessageById = async (id: string) => {
+    try {
+      const response = await getRequest<any>(`messages/${id}`, {
+        credentials: 'include'
+      } as any);
+      if (!response || response.code !== 1) {
+        toast.add({
+          title: "获取消息失败",
+          description: response?.msg || "请稍后重试",
+          icon: "i-fluent-error-circle-16-filled",
+          color: "red",
+          timeout: 2000,
+        });
+        return null;
+      }
+      return response.data;
+    } catch (error) {
+      console.error("获取消息失败:", error);
+      throw error;
+    }
+  };
+
   // 更新单条笔记
   const updateMessage = async (id: number, content: string) => {
     try {
@@ -188,6 +211,40 @@ const getMessages = async (query: PageQuery) => {
       return response;
     } catch (error) {
       console.error("更新笔记失败:", error);
+      throw error;
+    }
+  };
+
+  // 切换置顶状态
+  const setPinned = async (id: number, pinned: boolean) => {
+    try {
+      const response = await putRequest<any>(`messages/${id}/pin`, { pinned }, {
+        credentials: 'include'
+      });
+      if (!response || response.code !== 1) {
+        toast.add({
+          title: "更新置顶状态失败",
+          description: response?.msg,
+          icon: "i-fluent-error-circle-16-filled",
+          color: "red",
+          timeout: 2000,
+        });
+        return null;
+      }
+      const index = messages.value.findIndex(msg => msg.id === id);
+      if (index !== -1) {
+        messages.value[index] = { ...messages.value[index], pinned } as any;
+        // 置顶状态改变后，按照 pinned + created_at 重新排序当前列表
+        messages.value = [...messages.value].sort((a, b) => {
+          const pa = (a as any).pinned ? 1 : 0;
+          const pb = (b as any).pinned ? 1 : 0;
+          if (pa !== pb) return pb - pa;
+          return new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
+        });
+      }
+      return response;
+    } catch (error) {
+      console.error("更新置顶状态失败:", error);
       throw error;
     }
   };
@@ -382,7 +439,7 @@ const createMessage = async (message: Message) => {
   }
 };
 // 返回所有方法和状态
-return {
+  return {
   messages,
   total,
   hasMore,
@@ -394,6 +451,8 @@ return {
   getMessages,
   deleteMessage,
   updateMessage,
+  setPinned,
+  getMessageById,
   getSiteConfig,
   updateSiteConfig,
   tags,
