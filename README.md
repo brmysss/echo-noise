@@ -19,7 +19,11 @@
 - 多数据库支持：SQLite / PostgreSQL / MySQL
 - 支持多平台部署运行，一键docker运行及fly.io等平台运行
 
-[安装部署](#安装部署)
+快速上手-[安装部署](#安装部署)
+
+[TOC]
+
+
 
 <details>
 <summary><h2>✅ 更新状况【点击查看】</h2></summary>
@@ -178,6 +182,8 @@
 
 一键部署
 
+无任何挂载时默认：
+
 ```
 docker run -d \
   --name Ech0-Noise \
@@ -186,7 +192,7 @@ docker run -d \
   noise233/echo-noise
 ```
 
-> **可使用 -v /opt/data:/app/data \ 可挂载你原有的数据，请确保/opt/data文件夹中包含原数据库文件，如果没有原数据库文件，进入页面会无任何可用数据**
+> 可使用 -v /opt/data:/app/data \ 可挂载你原有的数据，请确保/opt/data文件夹中包含原数据库文件，如果没有原数据库文件，进入页面会无任何可用数据
 >
 >  --platform linux/amd64 命令可选择不同平台
 
@@ -225,11 +231,14 @@ docker run -d \
 
 ## 已发布Docker镜像版本
 
-稳定双镜像版：latest 镜像  同时支持linux/amd64,linux/arm64，拉取时会系统会自动选择
+- 稳定双镜像版：latest 镜像  同时支持linux/amd64,linux/arm64，拉取时会系统会自动选择
 
-带MCP双镜像版：latest-mcp 镜像  同时支持linux/amd64,linux/arm64
 
-单平台镜像版：last 镜像  支持linux/amd6，镜像包容量更小
+- 带MCP双镜像版：latest-mcp 镜像  同时支持linux/amd64,linux/arm64
+
+
+- 精简单平台镜像版：last 镜像  支持linux/amd6，镜像包容量更小
+
 
 ### docker-componse构建部署
 
@@ -1402,6 +1411,8 @@ podman manifest push --all docker.io/noise233/echo-noise:latest docker://docker.
 
 迁移结束后将你的数据库文件和原图片文件夹（有的话）打包为zip格式，进入站点后台选择恢复数据上传即可。
 
+## 扩展组件
+
 <details>
 <summary><h2>✅ Popclip发送扩展【点击查看】</h2></summary>
 
@@ -1604,7 +1615,7 @@ exports.actions = [{
 - [x] 内容置顶功能
 - [x] 增加公告栏组件
 - [x] 实现 Markdown 连续图片宫格渲染
-- [ ] MCP模式（搜索、写入等）AI发布写入
+- [x] MCP模式（搜索、写入等）AI发布写入
 - [x] 页面加载过渡优化
 - [ ] 扩展支持一键识别当前网站信息并写入笔记（书签或稍后阅读）
 - [ ] 跨平台桌面端
