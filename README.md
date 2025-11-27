@@ -173,7 +173,7 @@
 
 ------
 
-## 安装部署
+## 🚀安装部署
 
 > 💡 部署完成后访问 ip:1314 即可使用
 > 
@@ -186,7 +186,7 @@
 >
 > 默认用户密码：admin
 
-无任何挂载时默认：
+无任何数据库挂载时默认：
 
 ```
 docker run -d \
@@ -212,7 +212,8 @@ docker run -d \
 
 ------
 
-启用 带MCP HTTP/SSE（对外暴露 1315，便于 curl /浏览器调用 MCP）：
+运行带MCP 镜像包：
+提供 HTTP/SSE（对外暴露 1315，便于 curl /浏览器调用 MCP）：
 
 ```
 docker run -d \
@@ -239,15 +240,15 @@ docker run -d \
   noise233/echo-noise:latest-mcp
 ```
 
-## 已发布Docker镜像版本
+## 🎉已发布Docker镜像版本
 
-- 稳定双镜像版：latest 镜像  同时支持linux/amd64,linux/arm64，拉取时会系统会自动选择
-
-
-- 带MCP双镜像版：latest-mcp 镜像  同时支持linux/amd64,linux/arm64
+- 稳定双架构镜像版：latest 镜像  同时支持linux/amd64,linux/arm64，拉取时会系统会自动选择
 
 
-- 精简单平台镜像版：last 镜像  支持linux/amd6，镜像包容量更小
+- 带MCP双架构镜像版：latest-mcp 镜像  同时支持linux/amd64,linux/arm64
+
+
+- 精简单架构镜像版：last 镜像  支持linux/amd6，镜像包容量更小
 
 
 ### docker-componse构建部署
@@ -1368,7 +1369,7 @@ curl -N -X POST http://localhost:1315/mcp/tool/搜索 -H 'Content-Type: applicat
 
 ------
 
-## 发布说明
+## 🎁发布说明
 
 如果你需要构建自己的镜像发布-示例：
 
@@ -1402,7 +1403,7 @@ docker buildx build --platform linux/amd64,linux/arm64 --target final-mcp -t noi
 精简主镜像单架构amd64（不带 MCP）：
 
 ```
-docker buildx build --platform linux/amd64 --target final -t noise233/echo-noise:last --push --no-cache .
+docker buildx build --platform linux/amd64 --target final --build-arg USE_UPX=1 -t noise233/echo-noise:last --push --no-cache .
 ```
 
 Podman（替代Docker）
