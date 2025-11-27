@@ -260,7 +260,7 @@ docker-compose up -d
 
 数据库使用 [Neon PostgreSQL](https://console.neon.tech/) 云数据库服务，其它也支持
 
-请先前往官网https://console.neon.tech部署好你的基础数据库
+请先前往官网https://console.neon.tech 部署好你的基础数据库
 
 以下部署文件已放入根目录下的noise文件夹内
 
