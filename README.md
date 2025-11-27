@@ -21,6 +21,8 @@
 
 快速上手-[安装部署](#安装部署)
 
+
+
 [TOC]
 
 
@@ -242,13 +244,13 @@ docker run -d \
 
 ## 🎉已发布Docker镜像版本
 
-- 稳定双架构镜像版：latest 镜像  同时支持linux/amd64,linux/arm64，拉取时会系统会自动选择
+- 稳定双架构镜像版：latest 镜像  同时支持linux/amd64,linux/arm64，拉取时会系统会自动选择 大小：单架构 36.06MB 双版本 65MB
 
 
-- 带MCP双架构镜像版：latest-mcp 镜像  同时支持linux/amd64,linux/arm64
+- 带MCP双架构镜像版：latest-mcp 镜像  同时支持linux/amd64,linux/arm64 单架构 58.7MB 双版本165MB
 
 
-- 精简单架构镜像版：last 镜像  支持linux/amd6，镜像包容量更小
+- 精简单架构镜像版：last 镜像  支持linux/amd6，镜像包容量更小 36.06 MB
 
 
 ### docker-componse构建部署
