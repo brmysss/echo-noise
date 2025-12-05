@@ -33,6 +33,8 @@
 
 ## 2025更新状态
 
+- 网页组件增强：为分页/搜索/标签接口添加作者筛选展示支持
+
 - 统一端口为1314，前端开发、后端服务与 MCP 三者协同
 
 - 增强密码判定与兼容策略，用户首次登录成功并自动升级
@@ -1665,12 +1667,30 @@ exports.actions = [{
             host: 'https://note.noisework.cn', // 修改为你的服务器地址
             limit: '10',
             domId: '#note',
+            authorId: '1',         // 或者 username: 'Noise'
+            username: ''           // 二选一即可
             commentServer: 'https://yoursite.com', // 修改为你的评论服务器地址
             sourceName: '「说说笔记」' // 添加来源名称配置
         };
 ```
 
+不填写 authorId 、 username 时，小组件会请求不带作者筛选的接口，展示“全部公开消息”（按分页/搜索/标签的当前逻辑）。
 
+字段说明
+
+- host ：站点根地址，形如 https://域名 （不要加末尾 / ）。
+
+- limit ：每页加载条数。
+
+- domId ：小组件挂载容器选择器，需要与页面中的容器匹配。
+
+- commentServer ：Waline 评论服务地址。
+
+- sourceName ：卡片底部“来源”文案。
+
+- authorId / username ：作者筛选参数，二选一；两者同时填写时以 authorId 为准。
+
+  
 
 </details>
 

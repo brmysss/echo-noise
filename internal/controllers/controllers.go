@@ -280,7 +280,21 @@ func GetMessagesByPage(c *gin.Context) {
 		}
 	}
 
-	pageQueryResult, err := services.GetMessagesByPage(page, pageSize, currentUserID, isAdmin)
+	// 作者筛选（可选）
+	var authorID *uint
+	if aid := c.Query("authorId"); aid != "" {
+		if v, err := strconv.ParseUint(aid, 10, 64); err == nil {
+			vv := uint(v)
+			authorID = &vv
+		}
+	}
+	var username *string
+	if un := c.Query("username"); strings.TrimSpace(un) != "" {
+		u := strings.TrimSpace(un)
+		username = &u
+	}
+
+	pageQueryResult, err := services.GetMessagesByPage(page, pageSize, currentUserID, isAdmin, authorID, username)
 	if err != nil {
 		c.JSON(http.StatusOK, dto.Fail[string](err.Error()))
 		return
@@ -1169,7 +1183,21 @@ func SearchMessages(c *gin.Context) {
 		}
 	}
 
-	result, err := services.SearchMessages(keyword, page, pageSize, showPrivate)
+	// 可选作者筛选
+	var authorID *uint
+	if aid := c.Query("authorId"); aid != "" {
+		if v, err := strconv.ParseUint(aid, 10, 64); err == nil {
+			vv := uint(v)
+			authorID = &vv
+		}
+	}
+	var username *string
+	if un := c.Query("username"); strings.TrimSpace(un) != "" {
+		u := strings.TrimSpace(un)
+		username = &u
+	}
+
+	result, err := services.SearchMessages(keyword, page, pageSize, showPrivate, authorID, username)
 	if err != nil {
 		c.JSON(http.StatusOK, gin.H{
 			"code": 0,

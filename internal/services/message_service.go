@@ -48,8 +48,8 @@ func GetMessageByID(id uint, showPrivate bool) (*models.Message, error) {
 	return message, nil
 }
 
-// GetMessagesByPage 分页获取笔记（管理员查看全部；普通用户可查看公开和自己的私密）
-func GetMessagesByPage(page, pageSize int, userID *uint, isAdmin bool) (dto.PageQueryResult, error) {
+// GetMessagesByPage 分页获取笔记（支持作者筛选；管理员查看全部；普通用户可查看公开和自己的私密）
+func GetMessagesByPage(page, pageSize int, userID *uint, isAdmin bool, authorID *uint, username *string) (dto.PageQueryResult, error) {
 	// 参数校验
 	if page < 1 {
 		page = 1
@@ -64,20 +64,46 @@ func GetMessagesByPage(page, pageSize int, userID *uint, isAdmin bool) (dto.Page
 	var messages []models.Message
 	var total int64
 
-    if isAdmin {
-        // 管理员查看全部，置顶优先
-        database.DB.Model(&models.Message{}).Count(&total)
-        database.DB.Limit(pageSize).Offset(offset).Order("pinned DESC, created_at DESC").Find(&messages)
-    } else if userID != nil {
-        // 普通登录用户：公开的 + 自己的私密
-        query := database.DB.Model(&models.Message{}).Where("private = ? OR user_id = ?", false, *userID)
-        query.Count(&total)
-        query.Limit(pageSize).Offset(offset).Order("pinned DESC, created_at DESC").Find(&messages)
-    } else {
-        // 未登录用户：仅公开
-        database.DB.Model(&models.Message{}).Where("private = ?", false).Count(&total)
-        database.DB.Limit(pageSize).Offset(offset).Where("private = ?", false).Order("pinned DESC, created_at DESC").Find(&messages)
-    }
+	// 基础查询
+	q := database.DB.Model(&models.Message{})
+	// 作者筛选
+	if authorID != nil {
+		q = q.Where("user_id = ?", *authorID)
+	} else if username != nil && *username != "" {
+		q = q.Where("username = ?", *username)
+	}
+	// 隐私过滤
+	if isAdmin {
+		// 管理员查看全部
+	} else if userID != nil {
+		if authorID != nil {
+			if *authorID == *userID {
+				// 查看自己的：全部（已通过作者筛选）
+			} else {
+				// 查看他人：仅公开
+				q = q.Where("private = ?", false)
+			}
+		} else if username != nil && *username != "" {
+			// 仅提供了用户名时，判断是否为当前用户
+			if u, err := GetUserByID(*userID); err == nil && strings.TrimSpace(u.Username) == *username {
+				// 查看自己的：全部（已通过作者筛选）
+			} else {
+				// 查看他人：仅公开
+				q = q.Where("private = ?", false)
+			}
+		} else {
+			// 无作者筛选：公开的 + 自己的私密
+			q = q.Where("private = ? OR user_id = ?", false, *userID)
+		}
+	} else {
+		// 未登录用户：仅公开
+		q = q.Where("private = ?", false)
+	}
+
+	q.Count(&total)
+	if err := q.Limit(pageSize).Offset(offset).Order("pinned DESC, created_at DESC").Find(&messages).Error; err != nil {
+		return dto.PageQueryResult{}, err
+	}
 
 	// 返回结果
 	return dto.PageQueryResult{Total: total, Items: messages}, nil
@@ -257,81 +283,87 @@ func UpdateMessage(messageID uint, content string) error {
 		return fmt.Errorf("更新消息失败: %v", err)
 	}
 
-    return nil
+	return nil
 }
 
 // UpdateMessagePinned 更新消息置顶状态
 func UpdateMessagePinned(messageID uint, pinned bool) error {
-    message, err := repository.GetMessageByID(messageID, true)
-    if err != nil {
-        return fmt.Errorf("获取消息失败: %v", err)
-    }
-    if message == nil {
-        return fmt.Errorf("消息不存在")
-    }
-    message.Pinned = pinned
-    if err := database.DB.Save(message).Error; err != nil {
-        return fmt.Errorf("更新置顶状态失败: %v", err)
-    }
-    return nil
+	message, err := repository.GetMessageByID(messageID, true)
+	if err != nil {
+		return fmt.Errorf("获取消息失败: %v", err)
+	}
+	if message == nil {
+		return fmt.Errorf("消息不存在")
+	}
+	message.Pinned = pinned
+	if err := database.DB.Save(message).Error; err != nil {
+		return fmt.Errorf("更新置顶状态失败: %v", err)
+	}
+	return nil
 }
 
 // IncrementLikeCount 点赞计数加一
 func IncrementLikeCount(messageID uint) (int, error) {
-    message, err := repository.GetMessageByID(messageID, false)
-    if err != nil {
-        return 0, fmt.Errorf("获取消息失败: %v", err)
-    }
-    if message == nil {
-        return 0, fmt.Errorf("消息不存在")
-    }
-    message.LikeCount = message.LikeCount + 1
-    if err := database.DB.Save(message).Error; err != nil {
-        return 0, fmt.Errorf("更新点赞失败: %v", err)
-    }
-    return message.LikeCount, nil
+	message, err := repository.GetMessageByID(messageID, false)
+	if err != nil {
+		return 0, fmt.Errorf("获取消息失败: %v", err)
+	}
+	if message == nil {
+		return 0, fmt.Errorf("消息不存在")
+	}
+	message.LikeCount = message.LikeCount + 1
+	if err := database.DB.Save(message).Error; err != nil {
+		return 0, fmt.Errorf("更新点赞失败: %v", err)
+	}
+	return message.LikeCount, nil
 }
 
 // ToggleLike 根据 session 或用户切换点赞状态
 func ToggleLike(messageID uint, userID *uint, sessionID string) (bool, int, error) {
-    if sessionID == "" && (userID == nil || *userID == 0) {
-        return false, 0, fmt.Errorf("缺少会话或用户信息")
-    }
-    // 查询是否已有点赞
-    var existing models.MessageLike
-    q := database.DB.Where("message_id = ?", messageID)
-    if userID != nil && *userID != 0 {
-        q = q.Where("user_id = ?", *userID)
-    } else {
-        q = q.Where("session_id = ?", sessionID)
-    }
-    if err := q.First(&existing).Error; err == nil && existing.ID != 0 {
-        // 已点赞 -> 取消
-        if err := database.DB.Delete(&existing).Error; err != nil {
-            return false, 0, err
-        }
-    } else {
-        // 未点赞 -> 新增
-        like := models.MessageLike{ MessageID: messageID, SessionID: sessionID }
-        if userID != nil && *userID != 0 { like.UserID = userID }
-        if err := database.DB.Create(&like).Error; err != nil {
-            return false, 0, err
-        }
-    }
-    // 重新统计总数并同步
-    var cnt int64
-    if err := database.DB.Model(&models.MessageLike{}).Where("message_id = ?", messageID).Count(&cnt).Error; err != nil {
-        return false, 0, err
-    }
-    if err := database.DB.Model(&models.Message{}).Where("id = ?", messageID).Update("like_count", cnt).Error; err != nil {
-        return false, int(cnt), err
-    }
-    // 再查一次是否点赞状态
-    var check models.MessageLike
-    q2 := database.DB.Where("message_id = ?", messageID)
-    if userID != nil && *userID != 0 { q2 = q2.Where("user_id = ?", *userID) } else { q2 = q2.Where("session_id = ?", sessionID) }
-    liked := q2.First(&check).Error == nil && check.ID != 0
-    return liked, int(cnt), nil
+	if sessionID == "" && (userID == nil || *userID == 0) {
+		return false, 0, fmt.Errorf("缺少会话或用户信息")
+	}
+	// 查询是否已有点赞
+	var existing models.MessageLike
+	q := database.DB.Where("message_id = ?", messageID)
+	if userID != nil && *userID != 0 {
+		q = q.Where("user_id = ?", *userID)
+	} else {
+		q = q.Where("session_id = ?", sessionID)
+	}
+	if err := q.First(&existing).Error; err == nil && existing.ID != 0 {
+		// 已点赞 -> 取消
+		if err := database.DB.Delete(&existing).Error; err != nil {
+			return false, 0, err
+		}
+	} else {
+		// 未点赞 -> 新增
+		like := models.MessageLike{MessageID: messageID, SessionID: sessionID}
+		if userID != nil && *userID != 0 {
+			like.UserID = userID
+		}
+		if err := database.DB.Create(&like).Error; err != nil {
+			return false, 0, err
+		}
+	}
+	// 重新统计总数并同步
+	var cnt int64
+	if err := database.DB.Model(&models.MessageLike{}).Where("message_id = ?", messageID).Count(&cnt).Error; err != nil {
+		return false, 0, err
+	}
+	if err := database.DB.Model(&models.Message{}).Where("id = ?", messageID).Update("like_count", cnt).Error; err != nil {
+		return false, int(cnt), err
+	}
+	// 再查一次是否点赞状态
+	var check models.MessageLike
+	q2 := database.DB.Where("message_id = ?", messageID)
+	if userID != nil && *userID != 0 {
+		q2 = q2.Where("user_id = ?", *userID)
+	} else {
+		q2 = q2.Where("session_id = ?", sessionID)
+	}
+	liked := q2.First(&check).Error == nil && check.ID != 0
+	return liked, int(cnt), nil
 }
 func GetMessagesGroupByDate() ([]struct {
 	Date  string `json:"date"`
@@ -385,7 +417,7 @@ func GetMessagePage(id uint) (*models.Message, error) {
 	return message, nil
 }
 
-func SearchMessages(keyword string, page, pageSize int, showPrivate bool) (dto.PageQueryResult, error) {
+func SearchMessages(keyword string, page, pageSize int, showPrivate bool, authorID *uint, username *string) (dto.PageQueryResult, error) {
 	// 参数校验
 	if page < 1 {
 		page = 1
@@ -398,6 +430,12 @@ func SearchMessages(keyword string, page, pageSize int, showPrivate bool) (dto.P
 	query := database.DB.Model(&models.Message{}).
 		Select("id, content, created_at, username, image_url, private, user_id").
 		Where("content LIKE ?", "%"+keyword+"%")
+	// 作者筛选
+	if authorID != nil {
+		query = query.Where("user_id = ?", *authorID)
+	} else if username != nil && *username != "" {
+		query = query.Where("username = ?", *username)
+	}
 
 	if !showPrivate {
 		query = query.Where("private = ?", false)

@@ -4,7 +4,9 @@ document.addEventListener('DOMContentLoaded', function() {
     const config = window.note || {
         host: 'https://note.noisework.cn', //修改为你的域名
         limit: '10',
-        domId: '#note'
+        domId: '#note',
+        authorId: '',
+        username: ''
     };
     
     const container = document.querySelector('#note .note-container');
@@ -21,6 +23,8 @@ document.addEventListener('DOMContentLoaded', function() {
     config.host = clean(config.host);
     config.domId = clean(config.domId);
     config.commentServer = clean(config.commentServer);
+    config.authorId = clean(config.authorId);
+    config.username = clean(config.username);
 
     // Create UI elements
     const loadMoreBtn = document.createElement('button');
@@ -176,6 +180,13 @@ document.addEventListener('DOMContentLoaded', function() {
         } else {
             // 无搜索词时使用普通分页路由
             url = `${config.host}/api/messages/page?page=${currentPage}&pageSize=${config.limit}`;
+        }
+        // 附加作者筛选参数（可选）
+        const params = [];
+        if (config.authorId) params.push(`authorId=${encodeURIComponent(config.authorId)}`);
+        if (config.username) params.push(`username=${encodeURIComponent(config.username)}`);
+        if (params.length > 0) {
+            url += (url.includes('?') ? '&' : '?') + params.join('&');
         }
         return url;
     }

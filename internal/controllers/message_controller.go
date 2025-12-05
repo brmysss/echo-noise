@@ -28,7 +28,19 @@ func GetMessagesByTag(c *gin.Context) {
     var messages []models.Message
     // 使用 LIKE 进行初步筛选
     tagPattern := "%#" + tag + "%"
-    if err := db.Where("content LIKE ?", tagPattern).Order("created_at DESC").Find(&messages).Error; err != nil {
+    q := db.Where("content LIKE ?", tagPattern)
+    // 作者筛选（可选）
+    if aid := c.Query("authorId"); aid != "" {
+        if v, err := strconv.ParseUint(aid, 10, 64); err == nil {
+            q = q.Where("user_id = ?", uint(v))
+        }
+    }
+    if un := c.Query("username"); un != "" {
+        q = q.Where("username = ?", un)
+    }
+    // 仅公开内容（小组件场景）
+    q = q.Where("private = ?", false)
+    if err := q.Order("created_at DESC").Find(&messages).Error; err != nil {
         c.JSON(http.StatusOK, gin.H{"code": 1, "data": []models.Message{}})
         return
     }
@@ -164,4 +176,3 @@ func GetMessagePage(c *gin.Context) {
         "data": message,
     })
 }
-
