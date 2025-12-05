@@ -646,8 +646,6 @@ bash scripts/build.sh
 
 先到后台获取api token,然后可以参考下面的命令运行或使用其它服务（记得将https://your.localhost.com 更改为你自己的服务地址）
 
-![1743847126537](https://s2.loli.net/2025/04/05/QqLEC1HUw2J9XO8.png)
-
 ```
 # 发送纯文本信息
 curl -X POST 'https://your.localhost.com/api/token/messages' \
