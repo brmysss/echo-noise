@@ -187,6 +187,14 @@ type SiteConfig struct {
 	LeftAdEnabled     bool   `gorm:"default:true"`
 	LeftAds           string `gorm:"type:text"`
 	LeftAdsIntervalMs int    `gorm:"default:4000"`
+	// 关于/友链/留言等页面配置
+	LinksTitle             string `gorm:"type:varchar(100)"`
+	LinksDescription       string `gorm:"type:varchar(191)"`
+	CommentPageTitle       string `gorm:"type:varchar(100)"`
+	CommentPageDescription string `gorm:"type:varchar(191)"`
+	AboutPageTitle         string `gorm:"type:varchar(100)"`
+	AboutPageDescription   string `gorm:"type:varchar(191)"`
+	AboutMarkdown          string `gorm:"type:text"`
 }
 
 func (s *SiteConfig) GetBackgroundsList() []string {

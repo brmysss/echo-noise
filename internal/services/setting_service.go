@@ -79,6 +79,14 @@ func GetFrontendConfig() (map[string]interface{}, error) {
 			"rssFaviconURL":    config.RSSFaviconURL,
 			"walineServerURL":  config.WalineServerURL,
 			"enableGithubCard": config.EnableGithubCard,
+			// 页面文案与关于页内容
+			"linksTitle":             choose(config.LinksTitle, getDefaultConfig()["frontendSettings"].(map[string]interface{})["linksTitle"].(string)),
+			"linksDescription":       choose(config.LinksDescription, getDefaultConfig()["frontendSettings"].(map[string]interface{})["linksDescription"].(string)),
+			"commentPageTitle":       choose(config.CommentPageTitle, getDefaultConfig()["frontendSettings"].(map[string]interface{})["commentPageTitle"].(string)),
+			"commentPageDescription": choose(config.CommentPageDescription, getDefaultConfig()["frontendSettings"].(map[string]interface{})["commentPageDescription"].(string)),
+			"aboutPageTitle":         choose(config.AboutPageTitle, getDefaultConfig()["frontendSettings"].(map[string]interface{})["aboutPageTitle"].(string)),
+			"aboutPageDescription":   choose(config.AboutPageDescription, getDefaultConfig()["frontendSettings"].(map[string]interface{})["aboutPageDescription"].(string)),
+			"aboutMarkdown":          choose(config.AboutMarkdown, getDefaultConfig()["frontendSettings"].(map[string]interface{})["aboutMarkdown"].(string)),
 			// 系统欢迎组件（与用户资料解耦；若未设置则回退默认）
 			"welcomeAvatarURL":   choose(config.WelcomeAvatarURL, getDefaultConfig()["frontendSettings"].(map[string]interface{})["welcomeAvatarURL"].(string)),
 			"welcomeName":        choose(config.WelcomeName, getDefaultConfig()["frontendSettings"].(map[string]interface{})["welcomeName"].(string)),
@@ -228,6 +236,28 @@ func UpdateFrontendSetting(userID uint, settingMap map[string]interface{}) error
 	}
 	if v, ok := frontendSettings["walineServerURL"].(string); ok {
 		config.WalineServerURL = v
+	}
+	// 页面文案与关于页内容
+	if v, ok := frontendSettings["linksTitle"].(string); ok {
+		config.LinksTitle = v
+	}
+	if v, ok := frontendSettings["linksDescription"].(string); ok {
+		config.LinksDescription = v
+	}
+	if v, ok := frontendSettings["commentPageTitle"].(string); ok {
+		config.CommentPageTitle = v
+	}
+	if v, ok := frontendSettings["commentPageDescription"].(string); ok {
+		config.CommentPageDescription = v
+	}
+	if v, ok := frontendSettings["aboutPageTitle"].(string); ok {
+		config.AboutPageTitle = v
+	}
+	if v, ok := frontendSettings["aboutPageDescription"].(string); ok {
+		config.AboutPageDescription = v
+	}
+	if v, ok := frontendSettings["aboutMarkdown"].(string); ok {
+		config.AboutMarkdown = v
 	}
 	if vb, ok := frontendSettings["calendarEnabled"].(bool); ok {
 		config.CalendarEnabled = vb
@@ -672,6 +702,14 @@ func getDefaultConfig() map[string]interface{} {
 			"rssFaviconURL":    "/favicon-32x32.png",
 			"walineServerURL":  "请前往waline官网https://waline.js.org查看部署配置",
 			"enableGithubCard": false,
+			// 页面文案与关于页内容
+			"linksTitle":             "友情链接",
+			"linksDescription":       "推荐站点和朋友们的主页",
+			"commentPageTitle":       "留言",
+			"commentPageDescription": "欢迎留下你的看法",
+			"aboutPageTitle":         "关于本站",
+			"aboutPageDescription":   "这里是站点的介绍与说明",
+			"aboutMarkdown":          "# 关于我\n\n这里是一个默认的个人简介示例：\n\n- 喜欢记录与分享\n- 热爱开源与学习\n- 持续打磨产品体验\n\n欢迎通过友链或留言与我交流！",
 			// 系统欢迎组件默认参数
 			"welcomeAvatarURL":      "https://s2.loli.net/2025/03/24/HnSXKvibAQlosIW.png",
 			"welcomeName":           "Noise",
