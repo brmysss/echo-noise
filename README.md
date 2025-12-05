@@ -1286,6 +1286,8 @@ curl -X POST http://localhost:8080/api/notify/send \
   }
   ```
 
+  示例：cherry studio 连接使用env：![WkQC3LegSlm8qBU](https://s2.loli.net/2025/12/05/WkQC3LegSlm8qBU.png)
+
 - 使用本地mcp实例单独运行
 
   `docker exec` 启动 `stdio` 握手的实例时，将 `NOTE_HTTP_PORT` 设为 `0`，只进行握手，不再监听 HTTP
