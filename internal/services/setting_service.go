@@ -354,6 +354,57 @@ func UpdateFrontendSetting(userID uint, settingMap map[string]interface{}) error
 		config.LeftAds = string(bs)
 	}
 
+	// 友链列表（管理员直接配置）
+	if arr, ok := frontendSettings["friendLinks"].([]interface{}); ok {
+		links := make([]models.FriendLink, 0, len(arr))
+		for _, it := range arr {
+			m, ok := it.(map[string]interface{})
+			if !ok {
+				continue
+			}
+			title := strings.TrimSpace(fmt.Sprintf("%v", m["title"]))
+			link := strings.TrimSpace(fmt.Sprintf("%v", m["link"]))
+			icon := strings.TrimSpace(fmt.Sprintf("%v", m["icon"]))
+			desc := strings.TrimSpace(fmt.Sprintf("%v", m["description"]))
+			if link == "" {
+				continue
+			}
+			links = append(links, models.FriendLink{Title: title, Link: link, Icon: icon, Description: desc})
+		}
+		if err := tx.Where("1 = 1").Delete(&models.FriendLink{}).Error; err != nil {
+			tx.Rollback()
+			return fmt.Errorf("更新友链失败: %v", err)
+		}
+		for _, l := range links {
+			if err := tx.Create(&l).Error; err != nil {
+				tx.Rollback()
+				return fmt.Errorf("保存友链失败: %v", err)
+			}
+		}
+	} else if arr2, ok := frontendSettings["friendLinks"].([]map[string]interface{}); ok {
+		links := make([]models.FriendLink, 0, len(arr2))
+		for _, m := range arr2 {
+			title := strings.TrimSpace(fmt.Sprintf("%v", m["title"]))
+			link := strings.TrimSpace(fmt.Sprintf("%v", m["link"]))
+			icon := strings.TrimSpace(fmt.Sprintf("%v", m["icon"]))
+			desc := strings.TrimSpace(fmt.Sprintf("%v", m["description"]))
+			if link == "" {
+				continue
+			}
+			links = append(links, models.FriendLink{Title: title, Link: link, Icon: icon, Description: desc})
+		}
+		if err := tx.Where("1 = 1").Delete(&models.FriendLink{}).Error; err != nil {
+			tx.Rollback()
+			return fmt.Errorf("更新友链失败: %v", err)
+		}
+		for _, l := range links {
+			if err := tx.Create(&l).Error; err != nil {
+				tx.Rollback()
+				return fmt.Errorf("保存友链失败: %v", err)
+			}
+		}
+	}
+
 	// 系统欢迎组件（与用户资料解耦）
 	if v, ok := frontendSettings["welcomeAvatarURL"].(string); ok {
 		config.WelcomeAvatarURL = strings.TrimSpace(v)

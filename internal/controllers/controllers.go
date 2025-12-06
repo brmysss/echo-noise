@@ -1430,7 +1430,8 @@ func CheckVersion(c *gin.Context) {
 	ch := make(chan result, 3)
 	go func() {
 		var v struct {
-			Name, LastUpdated string `json:"name","last_updated"`
+			Name        string `json:"name"`
+			LastUpdated string `json:"last_updated"`
 		}
 		if get("https://hub.docker.com/v2/repositories/noise233/echo-noise/tags/latest", &v) == nil && strings.TrimSpace(v.LastUpdated) != "" {
 			ch <- result{true, tagInfo{v.Name, v.LastUpdated}}
@@ -1441,7 +1442,8 @@ func CheckVersion(c *gin.Context) {
 	go func() {
 		var v struct {
 			Results []struct {
-				Name, LastUpdated string `json:"name","last_updated"`
+				Name        string `json:"name"`
+				LastUpdated string `json:"last_updated"`
 			} `json:"results"`
 		}
 		if get("https://hub.docker.com/v2/repositories/noise233/echo-noise/tags?page_size=1&ordering=last_updated", &v) == nil && len(v.Results) > 0 && strings.TrimSpace(v.Results[0].LastUpdated) != "" {
@@ -1453,7 +1455,8 @@ func CheckVersion(c *gin.Context) {
 	}()
 	go func() {
 		var v struct {
-			TagName, PublishedAt string `json:"tag_name","published_at"`
+			TagName     string `json:"tag_name"`
+			PublishedAt string `json:"published_at"`
 		}
 		if get("https://api.github.com/repos/noise233/echo-noise/releases/latest", &v) == nil && strings.TrimSpace(v.PublishedAt) != "" {
 			ch <- result{true, tagInfo{v.TagName, v.PublishedAt}}
@@ -1469,7 +1472,17 @@ func CheckVersion(c *gin.Context) {
 		}
 	}
 	if strings.TrimSpace(latest.LastUpdated) == "" {
-		c.JSON(http.StatusOK, gin.H{"code": 0, "msg": "检查更新失败"})
+		cur := strings.TrimSpace(os.Getenv("ECHO_NOISE_VERSION"))
+		if cur == "" {
+			cur = strings.TrimSpace(os.Getenv("APP_VERSION"))
+		}
+		if cur == "" {
+			cur = strings.TrimSpace(os.Getenv("IMAGE_TAG"))
+		}
+		if cur == "" {
+			cur = "latest"
+		}
+		c.JSON(http.StatusOK, gin.H{"code": 1, "data": gin.H{"hasUpdate": false, "lastUpdateTime": time.Now().Format(time.RFC3339), "currentTag": cur}})
 		return
 	}
 	cur := strings.TrimSpace(os.Getenv("ECHO_NOISE_VERSION"))

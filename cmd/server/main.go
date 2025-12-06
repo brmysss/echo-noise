@@ -3,6 +3,7 @@ package main
 import (
     "context"
     "fmt"
+    "io"
     "log"
     "net/http"
     "os"
@@ -39,7 +40,7 @@ func init() {
     if err != nil {
         log.Fatalf("打开日志文件失败: %v", err)
     }
-    log.SetOutput(f)
+    log.SetOutput(io.MultiWriter(f, os.Stdout))
 }
 
 func main() {

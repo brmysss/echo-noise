@@ -159,7 +159,14 @@
               <div v-if="friendLinksList.length > 0" class="mx-auto w-full max-w-3xl px-4 sm:px-6 mt-3 mb-3">
                 <div class="link-grid">
                   <a v-for="fl in friendLinksList" :key="fl.link || fl.title" :href="fl.link" target="_blank" rel="noopener noreferrer" class="link-card" :class="isDark ? 'link-card-dark' : 'link-card-light'">
-                    <UIcon :name="getIconName({ url: fl.link, icon: fl.icon })" class="w-7 h-7" />
+                    <div :class="['link-avatar', isDark ? 'link-avatar-dark' : 'link-avatar-light']">
+                      <template v-if="fl.imageURL">
+                        <img :src="imgSrc(fl.imageURL)" alt="avatar" class="link-avatar-img" />
+                      </template>
+                      <template v-else>
+                        <UIcon :name="getIconName({ url: fl.link, icon: fl.icon })" class="w-6 h-6" />
+                      </template>
+                    </div>
                     <div class="link-content">
                       <div class="link-title">{{ fl.title }}</div>
                       <div v-if="fl.description" class="text-xs opacity-75">{{ fl.description }}</div>
@@ -1117,8 +1124,13 @@ const fetchConfig = async () => {
                         frontendConfig.value.socialLinks = [...settings[key]]
                     } else if (key === 'leftAds' && Array.isArray(settings[key])) {
                         frontendConfig.value.leftAds = [...settings[key]]
-                    } else if (key === 'friendLinks' && Array.isArray(settings[key])) {
-                        frontendConfig.value.friendLinks = [...settings[key]]
+                    } else if (key === 'friendLinks') {
+                        const arr = settings[key]
+                        if (Array.isArray(arr) && arr.length > 0) {
+                            frontendConfig.value.friendLinks = [...arr]
+                        } else {
+                            frontendConfig.value.friendLinks = [...defaultConfig.friendLinks]
+                        }
                     } else if (booleanKeys.includes(key)) {
                         const v = settings[key]
                         frontendConfig.value[key] = (v === true || v === 'true')
@@ -1213,12 +1225,21 @@ const visibleSocialLinks = computed(() => simpleLinks.value)
 const friendLinksList = computed(() => {
   const raw = (frontendConfig as any).value?.friendLinks ?? (frontendConfig as any).friendLinks
   const arr = Array.isArray(raw) ? raw : []
-  return arr.filter((it: any) => String(it?.link || '').trim() !== '').map((it: any) => ({
-    title: String(it?.title || it?.link || '').trim(),
-    link: String(it?.link || '').trim(),
-    icon: String(it?.icon || '').trim(),
-    description: String(it?.description || '').trim(),
-  }))
+  const isImg = (s: string) => {
+    const t = String(s || '').trim().toLowerCase()
+    return !!t && (t.startsWith('http') || t.startsWith('data:image') || /\.(png|jpg|jpeg|webp|gif|ico)(\?.*)?$/.test(t))
+  }
+  return arr.filter((it: any) => String(it?.link || '').trim() !== '').map((it: any) => {
+    const icon = String(it?.icon || '').trim()
+    const imageURL = isImg(icon) ? icon : ''
+    return {
+      title: String(it?.title || it?.link || '').trim(),
+      link: String(it?.link || '').trim(),
+      icon,
+      imageURL,
+      description: String(it?.description || '').trim(),
+    }
+  })
 })
 // 友链申请表单与提交
 const linkApply = reactive<{ title: string; link: string; icon: string; email: string; description: string }>({ title: '', link: '', icon: '', email: '', description: '' })
@@ -1453,12 +1474,17 @@ const advanceAd = async () => {
   const ok = await preloadAdImage(next)
   if (ok) adIndex.value = nextIdx
 }
-onMounted(() => {
-  const interval = Number(frontendConfig.leftAdsIntervalMs || 5000)
+const restartAdTimer = () => {
+  if (adTimer) { clearInterval(adTimer); adTimer = null }
+  const interval = Number((frontendConfig.value as any)?.leftAdsIntervalMs ?? 5000)
   if (leftAds.value.length > 1) {
-    adTimer = setInterval(() => { advanceAd() }, Math.max(2000, interval))
+    adTimer = setInterval(() => { advanceAd() }, Math.max(1000, interval))
   }
-})
+}
+onMounted(() => { restartAdTimer() })
+watch([leftAds, () => (frontendConfig.value as any)?.leftAdsIntervalMs], () => {
+  restartAdTimer()
+}, { immediate: true })
 onUnmounted(() => { if (adTimer) clearInterval(adTimer) })
 
 // 最新评论（右栏）
@@ -2320,9 +2346,10 @@ html.dark .sidebar-card :where(.border,.border-gray-200,.border-gray-300,.border
 .link-card-dark { background: rgba(36,43,50,0.85); color: #fff; border: 1px solid rgba(255,255,255,0.12); box-shadow: 0 1px 2px rgba(255,255,255,0.06); }
 .link-card:hover { background-color: rgba(0,0,0,0.02); transform: translateY(-1px); }
 .link-card-dark:hover { background-color: rgba(255,255,255,0.08); }
-.link-avatar { width: 42px; height: 42px; border-radius: 0; display: inline-flex; align-items: center; justify-content: center; }
+.link-avatar { width: 36px; height: 36px; border-radius: 9999px; display: inline-flex; align-items: center; justify-content: center; overflow: hidden; }
 .link-avatar-light { background: #eef2ff; color: #4f46e5; border: 1px solid rgba(0,0,0,0.06); }
 .link-avatar-dark { background: rgba(255,255,255,0.12); color: #c7d2fe; border: 1px solid rgba(255,255,255,0.16); }
+.link-avatar-img { width: 100%; height: 100%; object-fit: cover; border-radius: 9999px; display: block; }
 .link-content { flex: 1; min-width: 0; }
 .link-title { font-weight: 600; font-size: 13px; line-height: 1.2; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .link-sub { display: none; }

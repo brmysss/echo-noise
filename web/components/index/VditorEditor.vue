@@ -3,7 +3,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted, onBeforeUnmount } from "vue";
+import { ref, onMounted, onBeforeUnmount, watch, nextTick } from "vue";
 import Vditor from "vditor";
 import "vditor/dist/index.css";
 
@@ -22,6 +22,10 @@ const emit = defineEmits(["update:modelValue"]);
 
 const editorContainer = ref<HTMLElement>();
 let vditorInstance: Vditor | null = null;
+let toolbarEl: HTMLElement | null = null;
+let placeholderEl: HTMLElement | null = null;
+let mutationObserver: MutationObserver | null = null;
+let fixedCleanup: (() => void) | null = null;
 
 const editorOptions: IOptions = {
   mode: "ir",
@@ -101,6 +105,98 @@ onMounted(async () => {
     },
   }
   vditorInstance = new Vditor(editorContainer.value, opts);
+  // 等待渲染完成后设置工具栏固定到视窗顶部
+  const setupFixedToolbar = () => {
+    const root = editorContainer.value?.querySelector('.vditor') as HTMLElement | null;
+    toolbarEl = root?.querySelector('.vditor-toolbar') as HTMLElement | null;
+    if (!root || !toolbarEl) return;
+
+    // 占位元素，避免工具栏脱离文档流后遮挡内容
+    placeholderEl = document.createElement('div');
+    placeholderEl.style.width = '100%';
+    placeholderEl.style.height = `${toolbarEl.offsetHeight}px`;
+    placeholderEl.style.pointerEvents = 'none';
+    root.insertBefore(placeholderEl, toolbarEl.nextSibling);
+
+    const updateToolbarPosition = () => {
+      if (!root || !toolbarEl) return;
+      const isFullscreen = root.classList.contains('vditor--fullscreen');
+      const h = toolbarEl.offsetHeight;
+
+      if (isFullscreen) {
+        toolbarEl.style.position = 'fixed';
+        toolbarEl.style.top = '0px';
+        toolbarEl.style.left = '0px';
+        toolbarEl.style.width = `${window.innerWidth}px`;
+        toolbarEl.style.zIndex = '1002';
+        if (placeholderEl) placeholderEl.style.height = `${h}px`;
+        return;
+      }
+
+      // 保证容器可作为绝对定位参考
+      root.style.position = root.style.position || 'relative';
+
+      const rect = root.getBoundingClientRect();
+      const shouldStick = rect.top < 0 && rect.bottom > h;
+      const reachedTop = rect.top >= 0;
+      const reachedBottom = rect.bottom <= h;
+
+      if (shouldStick) {
+        // 在容器范围内贴顶滚动
+        toolbarEl.style.position = 'fixed';
+        toolbarEl.style.top = '0px';
+        toolbarEl.style.left = `${rect.left}px`;
+        toolbarEl.style.width = `${rect.width}px`;
+      } else if (reachedTop) {
+        // 还未到达视窗顶端，保持在容器顶部
+        toolbarEl.style.position = 'absolute';
+        toolbarEl.style.top = '0px';
+        toolbarEl.style.left = '0px';
+        toolbarEl.style.width = '100%';
+      } else if (reachedBottom) {
+        // 接近容器底部，固定在容器底端，避免越界
+        const containerHeight = root.offsetHeight;
+        toolbarEl.style.position = 'absolute';
+        toolbarEl.style.top = `${containerHeight - h}px`;
+        toolbarEl.style.left = '0px';
+        toolbarEl.style.width = '100%';
+      }
+
+      toolbarEl.style.zIndex = '1002';
+      if (placeholderEl) placeholderEl.style.height = `${h}px`;
+    };
+
+    const contentWrapper = document.querySelector('.content-wrapper');
+    contentWrapper?.addEventListener('scroll', updateToolbarPosition, { passive: true });
+    window.addEventListener('resize', updateToolbarPosition);
+    window.addEventListener('scroll', updateToolbarPosition, { passive: true });
+    updateToolbarPosition();
+
+    mutationObserver = new MutationObserver(() => updateToolbarPosition());
+    mutationObserver.observe(root, { attributes: true, attributeFilter: ['class'] });
+
+    fixedCleanup = () => {
+      contentWrapper?.removeEventListener('scroll', updateToolbarPosition);
+      window.removeEventListener('resize', updateToolbarPosition);
+      window.removeEventListener('scroll', updateToolbarPosition);
+      mutationObserver?.disconnect();
+      mutationObserver = null;
+      if (toolbarEl) {
+        toolbarEl.style.position = '';
+        toolbarEl.style.top = '';
+        toolbarEl.style.left = '';
+        toolbarEl.style.width = '';
+        toolbarEl.style.zIndex = '';
+      }
+      if (placeholderEl) {
+        placeholderEl.remove();
+        placeholderEl = null;
+      }
+    };
+  };
+
+  // 在下一轮微任务确保 DOM 就绪
+  nextTick(() => setupFixedToolbar());
 });
 
 onBeforeUnmount(() => {
@@ -108,6 +204,10 @@ onBeforeUnmount(() => {
     if (vditorInstance) {
       vditorInstance.destroy();
       vditorInstance = null;
+    }
+    if (fixedCleanup) {
+      fixedCleanup();
+      fixedCleanup = null;
     }
   } catch (e) {
     console.warn('Vditor destroy error', e);
@@ -171,13 +271,13 @@ watch(() => props.theme, (newTheme) => {
   content: counter(list-counter) ".";
   counter-increment: list-counter;
 }
-.vditor-toolbar { display:flex; flex-wrap:nowrap; overflow-x:auto; overflow-y:hidden; width:100%; max-width:100%; white-space:nowrap; -webkit-overflow-scrolling:touch; scrollbar-width:none; -ms-overflow-style:none; background-color:#f8f9fab7; border-bottom:none; position:sticky; top:0; z-index:100; }
+.vditor-toolbar { display:flex; flex-wrap:nowrap; overflow-x:auto; overflow-y:hidden; width:100%; max-width:100%; white-space:nowrap; -webkit-overflow-scrolling:touch; scrollbar-width:none; -ms-overflow-style:none; background-color:#f8f9fab7; border-bottom:none; z-index:100; }
 
 .vditor-toolbar::-webkit-scrollbar {
   display: none; /* Chrome, Safari and Opera */
 }
 
-.vditor-toolbar--pin { padding-left:6px !important; background-color:#f8f9fa; border-bottom:none; }
+.vditor-toolbar--pin { padding-left:6px !important; background-color:#f8f9fa; border-bottom:none; z-index:101; }
 
 /* 修改弹出面板样式 */
 .vditor-panel--none {
@@ -263,9 +363,11 @@ html.dark .vditor-tooltip, html.dark .vditor-tip {
 
 html.dark .vditor-preview { background-color: rgba(36, 43, 50, 0.6) !important; }
 
-/* 全屏沉浸模式统一色彩 */
-.vditor--fullscreen { background: rgba(36,43,50,0.95) !important; }
-.vditor--fullscreen .vditor-toolbar { background: rgba(36,43,50,0.6) !important; }
+/* 全屏模式主题自适应 */
+html.dark .vditor--fullscreen { background: rgba(36,43,50,0.95) !important; }
+html:not(.dark) .vditor--fullscreen { background: #ffffff !important; }
+html.dark .vditor--fullscreen .vditor-toolbar { background: rgba(36,43,50,0.6) !important; }
+html:not(.dark) .vditor--fullscreen .vditor-toolbar { background: #f8f9fa !important; }
 .vditor--fullscreen .vditor-ir pre.vditor-reset { font-size: 16px; line-height: 1.9; }
 
 @media screen and (max-width: 520px) {

@@ -818,7 +818,7 @@
                           <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
                             <UInput v-model="fl.title" placeholder="网站标题" />
                             <UInput v-model="fl.link" placeholder="链接 (http/https)" />
-                            <UInput v-model="fl.icon" placeholder="图标名称 (如 i-mdi-github，可选)" />
+                            <UInput v-model="fl.icon" placeholder="图标名称或图片URL (可选)" />
                             <UTextarea v-model="fl.description" placeholder="网站介绍 (可选)" class="md:col-span-2" />
                           </div>
                         </div>
@@ -3281,7 +3281,7 @@ const fetchConfig = async () => {
                     }
                 } else if (key === 'friendLinks') {
                     const arr = settings[key];
-                    if (Array.isArray(arr)) {
+                    if (Array.isArray(arr) && arr.length > 0) {
                         frontendConfig[key] = [...arr];
                     } else {
                         frontendConfig[key] = [...(defaultConfig.friendLinks || [])];
@@ -3398,6 +3398,13 @@ const saveConfigItem = async (key: string) => {
             } else if (key === 'announcementEnabled') {
                 const enabled = !!frontendConfig.announcementEnabled
                 useToast().add({ title: '成功', description: enabled ? '已开启公告' : '已关闭公告', color: enabled ? 'green' : 'gray' })
+            } else if (key === 'friendLinkEmailEnabled') {
+                const enabled = !!frontendConfig.friendLinkEmailEnabled
+                useToast().add({ title: '成功', description: enabled ? '已开启友链审核结果邮件通知' : '已关闭友链审核结果邮件通知', color: enabled ? 'green' : 'gray' })
+            } else if (key === 'friendLinks') {
+                useToast().add({ title: '成功', description: '友链已更新', color: 'green' })
+            } else if (key === 'linksApplyTitle' || key === 'linksApplyText') {
+                useToast().add({ title: '成功', description: '友链说明已更新', color: 'green' })
             } else {
                 const label = key === 'defaultContentTheme' ? '默认主题色' : (configLabels[key] || (key === 'pwa' ? 'PWA 设置' : key))
                 useToast().add({ title: '成功', description: `${label}已更新`, color: 'green' })

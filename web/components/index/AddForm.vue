@@ -512,7 +512,7 @@ const addMessage = async () => {
 
 <style scoped>
 .editor-box { background: #ffffff; border: 1px solid #e5e7eb; border-radius: 12px; box-shadow: 0 10px 24px rgba(0,0,0,.08); padding: 8px; color:#111827; }
-.editor-toolbar { display:flex; align-items:center; justify-content:space-between; gap:8px; margin-top:6px; padding:6px; border-radius:12px; background: rgba(255,255,255,0.85); flex-wrap: wrap; overflow:hidden; }
+.editor-toolbar { display:flex; align-items:center; justify-content:space-between; gap:8px; margin-top:6px; padding:6px; border-radius:12px; background: rgba(255,255,255,0.85); flex-wrap: wrap; overflow:hidden; position: sticky; bottom: 0; z-index: 95; backdrop-filter: saturate(1.1) blur(6px); }
 .toolbar-left, .toolbar-right { display:flex; align-items:center; gap:8px; flex-wrap: wrap; }
 .tb-btn { display:flex; align-items:center; justify-content:center; width:36px; height:36px; border-radius:12px; background: rgba(0,0,0,0.06); color:#374151; transition: all .18s ease; border:none; }
 .tb-btn:hover { transform: translate3d(0,0,0) scale(1.06); background: rgba(0,0,0,0.12); }
@@ -520,7 +520,7 @@ const addMessage = async () => {
 .tb-sep { width:1px; height:24px; background: rgba(0,0,0,0.12); margin: 0 2px; }
 .preview-card { backdrop-filter: blur(8px); background: #ffffff; border: 1px solid #e5e7eb; border-radius: 12px; padding: 8px; color:#111827; }
 html.dark .editor-box { background: rgba(36,43,50,0.95); border: 1px solid rgba(255,255,255,0.08); color:#fff; }
-html.dark .editor-toolbar { background: rgba(36,43,50,0.6); }
+html.dark .editor-toolbar { background: rgba(36,43,50,0.6); backdrop-filter: saturate(1.1) blur(6px); }
 html.dark .tb-btn { background: rgba(255,255,255,0.06); color:#cbd5e1; border:none; }
 html.dark .tb-btn:hover { background: rgba(255,255,255,0.12); }
 html.dark .tb-sep { background: rgba(255,255,255,0.12); }
