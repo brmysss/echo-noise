@@ -1,6 +1,7 @@
 package controllers
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"log"
@@ -549,6 +550,135 @@ func GetFrontendConfig(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{"code": 1, "data": config})
 }
 
+// SubmitFriendLinkApply 提交友链申请（公开）
+func SubmitFriendLinkApply(c *gin.Context) {
+	var req struct {
+		Title       string `json:"title"`
+		Link        string `json:"link"`
+		Icon        string `json:"icon"`
+		Description string `json:"description"`
+		Email       string `json:"email"`
+	}
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusOK, dto.Fail[string]("请求参数错误"))
+		return
+	}
+	req.Link = strings.TrimSpace(req.Link)
+	req.Title = strings.TrimSpace(req.Title)
+	req.Icon = strings.TrimSpace(req.Icon)
+	req.Description = strings.TrimSpace(req.Description)
+	req.Email = strings.TrimSpace(req.Email)
+	if req.Link == "" {
+		c.JSON(http.StatusOK, dto.Fail[string]("网址不能为空"))
+		return
+	}
+	db, _ := database.GetDB()
+	apply := models.FriendLinkApply{Title: req.Title, Link: req.Link, Icon: req.Icon, Description: req.Description, Email: req.Email, Status: "pending"}
+	if err := db.Create(&apply).Error; err != nil {
+		c.JSON(http.StatusOK, dto.Fail[string]("提交失败"))
+		return
+	}
+	var cfg models.SiteConfig
+	_ = db.Table("site_configs").First(&cfg).Error
+	if cfg.SmtpEnabled && cfg.FriendLinkEmailEnabled {
+		to := strings.TrimSpace(cfg.SmtpFrom)
+		if to == "" {
+			to = strings.TrimSpace(cfg.SmtpUser)
+		}
+		if to != "" {
+			subject := fmt.Sprintf("新的友链申请 - %s", cfg.SiteTitle)
+			body := fmt.Sprintf("站点：%s\n标题：%s\n网址：%s\n邮箱：%s\n说明：%s", cfg.SiteTitle, apply.Title, apply.Link, apply.Email, apply.Description)
+			_ = models.SendEmail(to, subject, body)
+		}
+	}
+	c.JSON(http.StatusOK, dto.OK(apply, "已提交，待审核"))
+}
+
+// ListFriendLinkApplications 管理员查看友链申请列表
+func ListFriendLinkApplications(c *gin.Context) {
+	_, err := checkAdmin(c)
+	if err != nil {
+		c.JSON(http.StatusOK, dto.Fail[string](err.Error()))
+		return
+	}
+	db, _ := database.GetDB()
+	var list []models.FriendLinkApply
+	q := strings.TrimSpace(c.Query("q"))
+	tx := db.Order("created_at DESC")
+	if q != "" {
+		tx = tx.Where("title LIKE ? OR link LIKE ?", "%"+q+"%", "%"+q+"%")
+	}
+	if err := tx.Find(&list).Error; err != nil {
+		c.JSON(http.StatusOK, dto.Fail[string]("查询失败"))
+		return
+	}
+	c.JSON(http.StatusOK, dto.OK(list, models.QuerySuccessMessage))
+}
+
+// AuditFriendLink 审核友链（通过/拒绝）
+func AuditFriendLink(c *gin.Context) {
+	_, err := checkAdmin(c)
+	if err != nil {
+		c.JSON(http.StatusOK, dto.Fail[string](err.Error()))
+		return
+	}
+	idStr := c.Param("id")
+	id64, e := strconv.ParseUint(idStr, 10, 64)
+	if e != nil || id64 == 0 {
+		c.JSON(http.StatusOK, dto.Fail[string](models.InvalidIDMessage))
+		return
+	}
+	var req struct {
+		Approve  bool   `json:"approve"`
+		Feedback string `json:"feedback"`
+	}
+	if e := c.ShouldBindJSON(&req); e != nil {
+		c.JSON(http.StatusOK, dto.Fail[string](models.InvalidRequestBodyMessage))
+		return
+	}
+	db, _ := database.GetDB()
+	var apply models.FriendLinkApply
+	if err := db.First(&apply, uint(id64)).Error; err != nil {
+		c.JSON(http.StatusOK, dto.Fail[string](models.RecordNotFoundMessage))
+		return
+	}
+	var cfg models.SiteConfig
+	_ = db.Table("site_configs").First(&cfg).Error
+	if req.Approve {
+		apply.Status = "approved"
+		apply.Feedback = strings.TrimSpace(req.Feedback)
+		if err := db.Save(&apply).Error; err != nil {
+			c.JSON(http.StatusOK, dto.Fail[string](models.DatabaseErrorMessage))
+			return
+		}
+		link := models.FriendLink{Title: apply.Title, Link: apply.Link, Icon: apply.Icon, Description: apply.Description, Email: apply.Email}
+		_ = db.Where("link = ?", link.Link).Delete(&models.FriendLink{})
+		if err := db.Create(&link).Error; err != nil {
+			c.JSON(http.StatusOK, dto.Fail[string](models.DatabaseErrorMessage))
+			return
+		}
+		if cfg.SmtpEnabled && cfg.FriendLinkEmailEnabled && strings.TrimSpace(apply.Email) != "" {
+			subject := fmt.Sprintf("友链申请通过 - %s", cfg.SiteTitle)
+			body := fmt.Sprintf("你的友链申请已通过：%s\n%s", apply.Link, strings.TrimSpace(req.Feedback))
+			_ = models.SendEmail(strings.TrimSpace(apply.Email), subject, body)
+		}
+		c.JSON(http.StatusOK, dto.OK(link, "已通过"))
+		return
+	}
+	apply.Status = "rejected"
+	apply.Feedback = strings.TrimSpace(req.Feedback)
+	if err := db.Save(&apply).Error; err != nil {
+		c.JSON(http.StatusOK, dto.Fail[string](models.DatabaseErrorMessage))
+		return
+	}
+	if cfg.SmtpEnabled && cfg.FriendLinkEmailEnabled && strings.TrimSpace(apply.Email) != "" {
+		subject := fmt.Sprintf("友链申请未通过 - %s", cfg.SiteTitle)
+		body := fmt.Sprintf("很抱歉，你的友链申请未通过。原因：%s", strings.TrimSpace(req.Feedback))
+		_ = models.SendEmail(strings.TrimSpace(apply.Email), subject, body)
+	}
+	c.JSON(http.StatusOK, dto.OK(apply, "已拒绝"))
+}
+
 // 获取指定消息的评论列表（内置评论系统）
 func GetComments(c *gin.Context) {
 	idStr := c.Param("id")
@@ -970,9 +1100,9 @@ func UpdateMessage(c *gin.Context) {
 		return
 	}
 
-	// 获取请求体
 	var req struct {
-		Content string `json:"content" binding:"required"`
+		Content *string `json:"content"`
+		Private *bool   `json:"private"`
 	}
 	if err := c.ShouldBindJSON(&req); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"code": 0, "msg": "请求参数错误"})
@@ -1005,13 +1135,13 @@ func UpdateMessage(c *gin.Context) {
 		return
 	}
 
-	// 更新消息
-	if err := services.UpdateMessage(uint(messageID), req.Content); err != nil {
+	updated, err := services.UpdateMessage(uint(messageID), req.Content, req.Private)
+	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"code": 0, "msg": err.Error()})
 		return
 	}
 
-	c.JSON(http.StatusOK, gin.H{"code": 1, "msg": "更新成功"})
+	c.JSON(http.StatusOK, gin.H{"code": 1, "msg": "更新成功", "data": updated})
 
 	// 即时模式触发云同步（防抖）
 	syncmanager.Trigger()
@@ -1273,16 +1403,73 @@ func RefreshRSS(c *gin.Context) {
 
 // 检查版本更新
 func CheckVersion(c *gin.Context) {
-	client := &http.Client{Timeout: 10 * time.Second}
-	latestResp, err := client.Get("https://hub.docker.com/v2/repositories/noise233/echo-noise/tags/latest")
-	if err != nil {
-		c.JSON(http.StatusOK, gin.H{"code": 0, "msg": "检查更新失败"})
-		return
+	client := &http.Client{Timeout: 5 * time.Second}
+	type tagInfo struct{ Name, LastUpdated string }
+	latest := tagInfo{}
+
+	get := func(url string, v any) error {
+		req, err := http.NewRequest("GET", url, nil)
+		if err != nil {
+			return err
+		}
+		ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+		defer cancel()
+		req = req.WithContext(ctx)
+		resp, err := client.Do(req)
+		if err != nil {
+			return err
+		}
+		defer resp.Body.Close()
+		return json.NewDecoder(resp.Body).Decode(v)
 	}
-	defer latestResp.Body.Close()
-	var latest struct{ Name, LastUpdated string }
-	if err := json.NewDecoder(latestResp.Body).Decode(&latest); err != nil || strings.TrimSpace(latest.LastUpdated) == "" {
-		c.JSON(http.StatusOK, gin.H{"code": 0, "msg": "解析版本信息失败"})
+
+	type result struct {
+		ok   bool
+		info tagInfo
+	}
+	ch := make(chan result, 3)
+	go func() {
+		var v struct {
+			Name, LastUpdated string `json:"name","last_updated"`
+		}
+		if get("https://hub.docker.com/v2/repositories/noise233/echo-noise/tags/latest", &v) == nil && strings.TrimSpace(v.LastUpdated) != "" {
+			ch <- result{true, tagInfo{v.Name, v.LastUpdated}}
+			return
+		}
+		ch <- result{false, tagInfo{}}
+	}()
+	go func() {
+		var v struct {
+			Results []struct {
+				Name, LastUpdated string `json:"name","last_updated"`
+			} `json:"results"`
+		}
+		if get("https://hub.docker.com/v2/repositories/noise233/echo-noise/tags?page_size=1&ordering=last_updated", &v) == nil && len(v.Results) > 0 && strings.TrimSpace(v.Results[0].LastUpdated) != "" {
+			r := v.Results[0]
+			ch <- result{true, tagInfo{r.Name, r.LastUpdated}}
+			return
+		}
+		ch <- result{false, tagInfo{}}
+	}()
+	go func() {
+		var v struct {
+			TagName, PublishedAt string `json:"tag_name","published_at"`
+		}
+		if get("https://api.github.com/repos/noise233/echo-noise/releases/latest", &v) == nil && strings.TrimSpace(v.PublishedAt) != "" {
+			ch <- result{true, tagInfo{v.TagName, v.PublishedAt}}
+			return
+		}
+		ch <- result{false, tagInfo{}}
+	}()
+	for i := 0; i < 3; i++ {
+		r := <-ch
+		if r.ok {
+			latest = r.info
+			break
+		}
+	}
+	if strings.TrimSpace(latest.LastUpdated) == "" {
+		c.JSON(http.StatusOK, gin.H{"code": 0, "msg": "检查更新失败"})
 		return
 	}
 	cur := strings.TrimSpace(os.Getenv("ECHO_NOISE_VERSION"))
@@ -1296,13 +1483,28 @@ func CheckVersion(c *gin.Context) {
 		cur = "latest"
 	}
 	var curUpdated string
-	if strings.ToLower(cur) != "latest" {
-		curResp, err := client.Get("https://hub.docker.com/v2/repositories/noise233/echo-noise/tags/" + cur)
-		if err == nil {
-			defer curResp.Body.Close()
-			var curTag struct{ Name, LastUpdated string }
-			if json.NewDecoder(curResp.Body).Decode(&curTag) == nil {
+	if strings.ToLower(cur) == "latest" {
+		curUpdated = strings.TrimSpace(latest.LastUpdated)
+	} else {
+		if resp, err := client.Get("https://hub.docker.com/v2/repositories/noise233/echo-noise/tags/" + cur); err == nil {
+			defer resp.Body.Close()
+			var curTag struct {
+				Name        string `json:"name"`
+				LastUpdated string `json:"last_updated"`
+			}
+			if json.NewDecoder(resp.Body).Decode(&curTag) == nil {
 				curUpdated = strings.TrimSpace(curTag.LastUpdated)
+			}
+		}
+		if strings.TrimSpace(curUpdated) == "" {
+			if resp, err := client.Get("https://api.github.com/repos/noise233/echo-noise/releases/tags/" + cur); err == nil {
+				defer resp.Body.Close()
+				var rel struct {
+					PublishedAt string `json:"published_at"`
+				}
+				if json.NewDecoder(resp.Body).Decode(&rel) == nil {
+					curUpdated = strings.TrimSpace(rel.PublishedAt)
+				}
 			}
 		}
 	}
@@ -1312,9 +1514,7 @@ func CheckVersion(c *gin.Context) {
 		return
 	}
 	var hasUpdate bool
-	if strings.ToLower(cur) == "latest" {
-		hasUpdate = false
-	} else if curUpdated != "" {
+	if curUpdated != "" {
 		curTime, err := time.Parse(time.RFC3339, curUpdated)
 		if err != nil {
 			c.JSON(http.StatusOK, gin.H{"code": 0, "msg": "解析时间失败"})

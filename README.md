@@ -35,6 +35,12 @@
 
 ## 2025更新状态
 
+- 增加友链提交审核功能，后台可查看并支持邮件回复
+
+- 增强私密功能，工具栏增加私密图标，可随时切换私密或公开状态
+
+- 优化首页组件效果，调整友链、关于页面的布局，优化后台页配色
+
 - 网页组件增强：为分页/搜索/标签接口添加作者筛选展示支持
 
 - 统一端口为1314，前端开发、后端服务与 MCP 三者协同
@@ -1438,7 +1444,13 @@ docker buildx create --use --name mybuilder
 常规主镜像（不含 MCP）
 
 ```
-docker buildx build --platform linux/amd64,linux/arm64 --target final -t noise233/echo-noise:latest --push --no-cache .
+docker buildx build \
+  --platform linux/amd64,linux/arm64 \
+  --target final \
+  --build-arg VERSION=v2.0 \
+  -t noise233/echo-noise:v2.0 \
+  -t noise233/echo-noise:latest \
+  --push --no-cache .
 ```
 
 同时推送版本时间标签与 latest ：
@@ -1456,14 +1468,31 @@ docker buildx build --platform linux/amd64,linux/arm64 --target final --build-ar
 包含MCP镜像：
 
 ```
-docker buildx build --platform linux/amd64,linux/arm64 --target final-mcp -t noise233/echo-noise:latest-mcp --push --no-cache .
+docker buildx build \
+  --platform linux/amd64,linux/arm64 \
+  --target final-mcp \
+  --build-arg VERSION=v2.0 \
+  -t noise233/echo-noise:v2.0-mcp \
+  -t noise233/echo-noise:latest-mcp \
+  --push --no-cache .
 ```
 
 精简主镜像单架构amd64（不带 MCP）：
 
 ```
-docker buildx build --platform linux/amd64 --target final --build-arg USE_UPX=1 -t noise233/echo-noise:last --push --no-cache .
+docker buildx build \
+  --platform linux/amd64 \
+  --target final \
+  --build-arg VERSION=v2.0 \
+  --build-arg USE_UPX=1 \
+  -t noise233/echo-noise:v2.0-amd64 \
+  -t noise233/echo-noise:latest-amd64 \
+  --push --no-cache .
 ```
+
+- 容器内 APP_VERSION=v2.0 ，后台版本接口会显示 v2.0
+  
+  同时把同一构建产物推成 v2.0 与 latest 两个标签，方便用户使用 :latest 拉到 v2.0
 
 Podman（替代Docker）
 

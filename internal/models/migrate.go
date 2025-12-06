@@ -10,19 +10,19 @@ import (
 func MigrateDB(db *gorm.DB) error {
 	dbType := db.Dialector.Name()
 	var err error
-	switch dbType {
-	case "postgres":
-		err = db.Set("gorm:table_options", "").
-			Set("gorm:varchar_size", 255).
-			AutoMigrate(&User{}, &Message{}, &Comment{}, &Setting{}, &SiteConfig{}, &NotifyConfig{}, &MessageLike{})
-	case "mysql":
-		err = db.Set("gorm:table_options", "ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci").
-			Set("gorm:varchar_size", 191).
-			AutoMigrate(&User{}, &Message{}, &Comment{}, &Setting{}, &SiteConfig{}, &NotifyConfig{}, &MessageLike{})
-	default: // sqlite
-		err = db.Set("gorm:varchar_size", 255).
-			AutoMigrate(&User{}, &Message{}, &Comment{}, &Setting{}, &SiteConfig{}, &NotifyConfig{}, &MessageLike{})
-	}
+    switch dbType {
+    case "postgres":
+        err = db.Set("gorm:table_options", "").
+            Set("gorm:varchar_size", 255).
+            AutoMigrate(&User{}, &Message{}, &Comment{}, &Setting{}, &SiteConfig{}, &NotifyConfig{}, &MessageLike{}, &FriendLink{}, &FriendLinkApply{})
+    case "mysql":
+        err = db.Set("gorm:table_options", "ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci").
+            Set("gorm:varchar_size", 191).
+            AutoMigrate(&User{}, &Message{}, &Comment{}, &Setting{}, &SiteConfig{}, &NotifyConfig{}, &MessageLike{}, &FriendLink{}, &FriendLinkApply{})
+    default: // sqlite
+        err = db.Set("gorm:varchar_size", 255).
+            AutoMigrate(&User{}, &Message{}, &Comment{}, &Setting{}, &SiteConfig{}, &NotifyConfig{}, &MessageLike{}, &FriendLink{}, &FriendLinkApply{})
+    }
 
 	if err != nil {
 		return err

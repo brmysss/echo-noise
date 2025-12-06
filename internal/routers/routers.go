@@ -131,6 +131,8 @@ func SetupRouter() *gin.Engine {
 	api.POST("/messages/:id/like", controllers.IncrementMessageLike)     // 点赞接口
 	api.POST("/messages/:id/like/toggle", controllers.ToggleMessageLike) // 点赞切换
 	api.GET("/guestbook/message", controllers.GetGuestbookMessageID)     // 获取留言板消息ID
+	// 友链申请（公开）
+	api.POST("/friend-links/apply", controllers.SubmitFriendLinkApply)
 
 	// 需要鉴权的路由
 	authRoutes := api.Group("")
@@ -230,6 +232,9 @@ func SetupRouter() *gin.Engine {
 
 	// 设置路由
 	authRoutes.PUT("/settings", controllers.UpdateSetting)
+	// 友链申请管理（管理员）
+	authRoutes.GET("/friend-links/apply", controllers.ListFriendLinkApplications)
+	authRoutes.PUT("/friend-links/:id/audit", controllers.AuditFriendLink)
 
 	// 显式 /status 返回 SPA 入口，避免目录重定向影响
 	r.GET("/status", func(c *gin.Context) {

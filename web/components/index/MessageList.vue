@@ -41,7 +41,10 @@
                   <div class="text-sm font-semibold leading-tight">{{ msg.username || siteConfig.username || '匿名' }}</div>
                   <div class="text-xs opacity-70">{{ formatDate(msg.created_at) }}</div>
                 </div>
-                <div v-if="msg.pinned" class="ml-auto text-xs opacity-80"><UIcon name="i-mdi-pin" class="w-4 h-4" /></div>
+                <div class="ml-auto flex items-center gap-2 text-xs opacity-80">
+                  <UIcon v-if="msg.private" name="i-mdi-lock-outline" class="w-4 h-4" />
+                  <UIcon v-if="msg.pinned" name="i-mdi-pin" class="w-4 h-4" />
+                </div>
               </div>
               
               <!-- 图片内容（支持放大预览 + 悬停效果） -->
@@ -60,11 +63,11 @@
               <div class="overflow-y-hidden relative" :class="[{ 'max-h-[700px]': !isExpanded[msg.id] && !hasGrid[msg.id] }, listThemeTextClass]">
                 <MarkdownRenderer :content="msg.content" :enableGithubCard="siteConfig?.enableGithubCard === true" @tagClick="handleTagClick" @rendered="checkContentHeight" link-target="_blank"/>
                 <div v-if="shouldShowExpandButton[msg.id] && !isExpanded[msg.id]"
-    :class="['absolute bottom-0 left-0 right-0 h-32 bg-gradient-to-t', gradientClass]" style="z-index:1"></div>
+    :class="['absolute bottom-0 left-0 right-0 h-24 bg-gradient-to-t backdrop-blur-md pointer-events-none content-fade-mask', gradientClass]" style="z-index:20"></div>
               </div>
               <button
                 v-if="shouldShowExpandButton[msg.id]"
-                class="expand-toggle-btn absolute bottom-0 left-1/2 -translate-x-1/2 px-4 py-1.5 text-sm inline-flex items-center gap-1"
+                class="expand-toggle-btn absolute bottom-0 left-1/2 -translate-x-1/2 px-4 py-1.5 text-sm inline-flex items-center gap-1 z-30"
                 :class="expandBtnClass"
                 @click="toggleExpand(msg.id)"
                 aria-label="toggle-expand"
@@ -75,21 +78,22 @@
               <div class="border-t border-gray-300 dark:border-gray-700 my-3"></div>
               <div class="message-socialbar">
                 <button class="social-item" @click="like(msg.id)" :title="'点赞'">
-                  <UIcon :name="(likedMap[msg.id] ? 'i-mdi-heart' : 'i-mdi-heart-outline')" :class="['w-5 h-5', likedMap[msg.id] ? 'text-red-500' : '']" />
+                  <UIcon :name="(likedMap[msg.id] ? 'i-mdi-heart' : 'i-mdi-heart-outline')" style="font-size: 20px; line-height: 1;" :class="[likedMap[msg.id] ? 'text-red-500' : '']" />
                   <span class="ml-1 text-xs opacity-80">{{ likesMap[msg.id] ?? (msg.like_count || 0) }}</span>
                 </button>
                 <button v-if="!isGuestbookMessage(msg)" class="social-item" @click="toggleComment(msg.id)" :title="'评论'">
-                  <UIcon name="i-mdi-comment-outline" class="w-5 h-5" />
+                  <UIcon name="i-mdi-comment-outline" style="font-size: 20px; line-height: 1;" />
                   <span class="ml-1 text-xs opacity-80">{{ commentCountMap[msg.id] || 0 }}</span>
                 </button>
                 <div class="flex-1"></div>
                 <div class="toolbox-anchor">
                   <UButton size="xs" color="gray" variant="ghost" :ui="{ base: 'rounded-full' }" class="tool-open-btn" @click="toggleToolbox(msg.id)" title="展开工具">
-                    <UIcon name="i-heroicons-ellipsis-horizontal" class="w-5 h-5" />
+                    <UIcon name="i-heroicons-ellipsis-horizontal" style="font-size: 16px; line-height: 1;" />
                   </UButton>
                   <div class="message-toolbox overlay" :class="toolboxClass" v-show="openToolboxId === msg.id">
                     <div class="tool-icons">
-                      <div v-if="msg.private" class="tool-icon"><UIcon name="i-mdi-lock-outline" /></div>
+                      <div v-if="canEdit(msg)" class="tool-icon" @click="togglePrivate(msg)" :title="msg.private ? '设为公开' : '设为私密'"><UIcon :name="msg.private ? 'i-mdi-lock-outline' : 'i-mdi-lock-open-outline'" /></div>
+                      <div v-else-if="msg.private" class="tool-icon"><UIcon name="i-mdi-lock-outline" /></div>
                       <div v-if="canPin(msg)" class="tool-icon" @click="togglePin(msg)" :title="msg.pinned ? '取消置顶' : '置顶内容'"><UIcon :name="msg.pinned ? 'i-mdi-pin' : 'i-mdi-pin-outline'" /></div>
                       <div v-if="isLogin" class="tool-icon" @click="editMessage(msg)" title="编辑"><UIcon name="i-mdi-pencil-outline" /></div>
                       <div class="tool-icon" @click="copyContent(msg.content)" title="复制"><UIcon name="i-mdi-content-copy" /></div>
@@ -167,12 +171,7 @@
         加载完毕~
       </div>
     </div>
-    <!-- 来源信息 - 固定在底部 -->
-    <div v-if="!siteConfig.pageFooterHTML" class="text-center text-xs text-gray-400 py-4">
-    来自<a href="https://www.noisework.cn" target="_blank" rel="noopener noreferrer" class="text-orange-400 hover:text-orange-500">Noise</a> 
-    使用<a href="https://github.com/rcy1314/echo-noise" target="_blank" rel="noopener noreferrer" class="text-orange-400 hover:text-orange-500">Ech0-Noise</a>发布
-  </div>
-  <div v-else v-html="siteConfig.pageFooterHTML"></div>
+    
 </div>
   <!-- 编辑对话框 -->
   <UModal v-model="showEditModal" :ui="{ width: 'sm:max-w-2xl' }">
@@ -601,18 +600,27 @@ const handleCancel = (msgId: number, payload?: { empty?: boolean }) => {
 }
 
 // 置顶权限：作者或管理员
-const canPin = (msg: any) => {
+  const canPin = (msg: any) => {
   if (!isLogin.value) return false;
   const user = userStore.user as any;
   if (!user) return false;
   const isAdmin = !!(user.IsAdmin || user.is_admin);
   const isAuthor = (user.ID || user.userid) === msg.user_id;
   return isAdmin || isAuthor;
-};
+  };
+
+  const canEdit = (msg: any) => {
+    if (!isLogin.value) return false;
+    const user = userStore.user as any;
+    if (!user) return false;
+    const isAdmin = !!(user.IsAdmin || user.is_admin);
+    const isAuthor = (user.ID || user.userid) === msg.user_id;
+    return isAdmin || isAuthor;
+  };
 
 const pinnedTopItems = ref<any[]>([]);
 
-const togglePin = async (msg: any) => {
+  const togglePin = async (msg: any) => {
   try {
     const next = !msg.pinned;
     const res = await message.setPinned(msg.id, next);
@@ -629,7 +637,19 @@ const togglePin = async (msg: any) => {
   } catch (e) {
     useToast().add({ title: '操作失败', color: 'red', timeout: 2000 });
   }
-};
+  };
+
+  const togglePrivate = async (msg: any) => {
+    try {
+      const next = !msg.private;
+      const res = await message.setPrivate(msg.id, next);
+      if (res) {
+        useToast().add({ title: next ? '已设为私密' : '已设为公开', color: 'green', timeout: 1500 });
+      }
+    } catch (e) {
+      useToast().add({ title: '操作失败', color: 'red', timeout: 2000 });
+    }
+  };
 
 const formatDate = (dateString: string) => {
   const date = new Date(dateString);
@@ -1576,7 +1596,7 @@ const footerConfig = computed(() => ({
   padding: 12px;
   border-radius: 12px;
   transition: all 0.3s ease;
-  margin: 2px 0 0.6rem 0;
+  margin: 4px 0 1.2rem 0;
   width: 100%;
   box-sizing: border-box;
   position: relative;
@@ -1624,7 +1644,7 @@ const footerConfig = computed(() => ({
 /* 添加移动端适配 */
 @media screen and (max-width: 1024px) {
   .content-container {
-    margin: 2px 0 0.4rem 0;
+    margin: 4px 0 1.0rem 0;
     padding: 8px;
     box-shadow: none;
     backdrop-filter: none;
@@ -1662,16 +1682,20 @@ const footerConfig = computed(() => ({
   margin-top: 10px; 
   border-radius: 12px; 
 }
+.content-fade-mask { 
+  -webkit-mask-image: linear-gradient(to top, rgba(0,0,0,1) 60%, rgba(0,0,0,0) 100%); 
+  mask-image: linear-gradient(to top, rgba(0,0,0,1) 60%, rgba(0,0,0,0) 100%); 
+}
 .toolbox-anchor { position: relative; display: inline-block; }
 .message-toolbox.overlay { position:absolute; right:0; bottom:calc(100% + 8px); z-index:100; }
 .tool-icons { 
   display: flex; 
   align-items: center; 
-  gap: 12px; 
-  padding: 8px 10px; 
+  gap: 6px; 
+  padding: 4px 6px; 
 }
 .tool-icon { 
-  width: 22px; height: 22px; display:flex; align-items:center; justify-content:center; cursor:pointer; opacity:0.85; 
+  width: 20px; height: 20px; display:flex; align-items:center; justify-content:center; cursor:pointer; opacity:0.85; font-size:16px; line-height:1;
 }
 .tool-icon:hover { opacity: 1; transform: scale(1.06); transition: transform .12s ease; }
 .toolbox-dark { background: rgba(36,43,50,0.95); border: 1px solid rgba(255,255,255,0.1); }
@@ -1682,7 +1706,7 @@ const footerConfig = computed(() => ({
 .social-item:hover { opacity:1; }
 @media (max-width: 640px) {
   .tool-icons { gap:10px; padding:6px 8px; }
-  .tool-icon { width:20px; height:20px; }
+  .tool-icon { width:22px; height:22px; font-size:18px; }
   .message-socialbar { gap:10px; padding:0; }
 }
 

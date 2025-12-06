@@ -60,6 +60,22 @@ func GetFrontendConfig() (map[string]interface{}, error) {
 		})
 	}
 
+	var friendLinks []models.FriendLink
+	_ = db.Order("created_at DESC").Find(&friendLinks).Error
+	normalizedLinks := make([]map[string]string, 0, len(friendLinks))
+	for _, fl := range friendLinks {
+		link := strings.TrimSpace(fl.Link)
+		if link == "" {
+			continue
+		}
+		normalizedLinks = append(normalizedLinks, map[string]string{
+			"title":       strings.TrimSpace(fl.Title),
+			"link":        link,
+			"icon":        strings.TrimSpace(fl.Icon),
+			"description": strings.TrimSpace(fl.Description),
+		})
+	}
+
 	configMap := map[string]interface{}{
 		"allowRegistration": allowReg,
 		"dbType":            dbType,
@@ -82,6 +98,8 @@ func GetFrontendConfig() (map[string]interface{}, error) {
 			// 页面文案与关于页内容
 			"linksTitle":             choose(config.LinksTitle, getDefaultConfig()["frontendSettings"].(map[string]interface{})["linksTitle"].(string)),
 			"linksDescription":       choose(config.LinksDescription, getDefaultConfig()["frontendSettings"].(map[string]interface{})["linksDescription"].(string)),
+			"linksApplyTitle":        choose(config.LinksApplyTitle, "申请友链须知"),
+			"linksApplyText":         choose(config.LinksApplyText, "请提供站点名称、网址、图标（可选）、简介与有效邮箱。提交后需管理员审核，审核通过后展示。"),
 			"commentPageTitle":       choose(config.CommentPageTitle, getDefaultConfig()["frontendSettings"].(map[string]interface{})["commentPageTitle"].(string)),
 			"commentPageDescription": choose(config.CommentPageDescription, getDefaultConfig()["frontendSettings"].(map[string]interface{})["commentPageDescription"].(string)),
 			"aboutPageTitle":         choose(config.AboutPageTitle, getDefaultConfig()["frontendSettings"].(map[string]interface{})["aboutPageTitle"].(string)),
@@ -129,9 +147,11 @@ func GetFrontendConfig() (map[string]interface{}, error) {
 			"timeEnabled":     config.TimeEnabled,
 			"hitokotoEnabled": config.HitokotoEnabled,
 
-			"leftAdEnabled":     config.LeftAdEnabled,
-			"leftAds":           normalizedAds,
-			"leftAdsIntervalMs": config.LeftAdsIntervalMs,
+			"leftAdEnabled":          config.LeftAdEnabled,
+			"leftAds":                normalizedAds,
+			"leftAdsIntervalMs":      config.LeftAdsIntervalMs,
+			"friendLinks":            normalizedLinks,
+			"friendLinkEmailEnabled": config.FriendLinkEmailEnabled,
 		},
 		"storageEnabled": config.StorageEnabled,
 		"storageConfig": map[string]interface{}{
@@ -243,6 +263,12 @@ func UpdateFrontendSetting(userID uint, settingMap map[string]interface{}) error
 	}
 	if v, ok := frontendSettings["linksDescription"].(string); ok {
 		config.LinksDescription = v
+	}
+	if v, ok := frontendSettings["linksApplyTitle"].(string); ok {
+		config.LinksApplyTitle = v
+	}
+	if v, ok := frontendSettings["linksApplyText"].(string); ok {
+		config.LinksApplyText = v
 	}
 	if v, ok := frontendSettings["commentPageTitle"].(string); ok {
 		config.CommentPageTitle = v
@@ -572,6 +598,12 @@ func UpdateFrontendSetting(userID uint, settingMap map[string]interface{}) error
 
 	if v, ok := settingMap["smtpEnabled"].(bool); ok {
 		config.SmtpEnabled = v
+	}
+	// 友链邮件通知开关
+	if vb, ok := frontendSettings["friendLinkEmailEnabled"].(bool); ok {
+		config.FriendLinkEmailEnabled = vb
+	} else if vs, ok := frontendSettings["friendLinkEmailEnabled"].(string); ok {
+		config.FriendLinkEmailEnabled = (vs == "true")
 	}
 	if v, ok := settingMap["smtpDriver"].(string); ok {
 		config.SmtpDriver = v

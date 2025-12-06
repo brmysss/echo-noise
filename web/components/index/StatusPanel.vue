@@ -85,7 +85,7 @@
         <div class="px-4 py-3 border-t border-slate-700/40">
           <div class="text-xs text-slate-400">当前版本: {{ versionInfo.currentVersion || '最新' }}</div>
           <div class="mt-2 flex items-center gap-2">
-            <UButton size="xs" color="gray" variant="soft" :loading="versionInfo.checking" class="shadow-md" @click="checkVersion">{{ versionInfo.checking ? '检测中...' : '检查版本发布时间' }}</UButton>
+            <UButton size="xs" color="indigo" variant="soft" :loading="versionInfo.checking" class="shadow-md" @click="checkVersion">{{ versionInfo.checking ? '检测中...' : '检查版本发布时间' }}</UButton>
           </div>
           <div v-if="versionInfo.hasUpdate" class="mt-2 text-orange-400 flex items-center gap-2">
             <UIcon name="i-heroicons-arrow-up-circle" class="w-4 h-4" />
@@ -93,10 +93,10 @@
           </div>
         </div>
       </aside>
-        <main class="w-full min-h-screen md:pl-72 overflow-y-auto" :class="theme.text">
-        <div class="md:hidden flex items-center justify-between px-4 py-3 border-b rounded-b-2xl" :class="[theme.headerBg, theme.border, theme.text]">
+        <main ref="adminMain" class="w-full min-h-screen md:pl-72 overflow-y-auto" :class="theme.text">
+        <div class="md:hidden flex items-center justify-between px-4 border-b rounded-b-2xl transition-all duration-200" :class="[theme.headerBg, theme.border, theme.text, headerCompact ? 'py-2' : 'py-3']">
           <div class="flex items-center gap-2">
-            <button class="p-2 rounded-lg bg-slate-800/70 shadow" @click="sidebarOpen = !sidebarOpen"><UIcon name="i-heroicons-bars-3" class="w-5 h-5" /></button>
+            <button class="rounded-lg shadow" :class="[headerBtnCls, headerCompact ? 'p-1.5' : 'p-2']" @click="sidebarOpen = !sidebarOpen"><UIcon name="i-heroicons-bars-3" class="w-5 h-5" /></button>
             <span class="font-semibold">系统管理面板</span>
           </div>
           <div class="flex items-center gap-2">
@@ -176,7 +176,7 @@
                       </div>
                         <div class="flex items-center justify-between">
                           <UButton size="sm" color="indigo" variant="soft" class="shadow" @click="frontendConfig.leftAds.push({ imageURL: '', linkURL: '', description: '' })">新增广告</UButton>
-                          <UButton size="sm" color="gray" variant="soft" class="shadow" @click="resetAdsConfig">重置为默认</UButton>
+                          <UButton size="sm" color="indigo" variant="soft" class="shadow" @click="resetAdsConfig">重置为默认</UButton>
                           <div class="flex items-center gap-2">
                             <span class="text-sm" :class="theme.mutedText">轮播间隔(ms)</span>
                             <UInput v-model.number="frontendConfig.leftAdsIntervalMs" type="number" class="w-28" />
@@ -269,8 +269,8 @@
                   <div class="flex justify-between items-center mb-2">
                     <span :class="theme.mutedText">头像</span>
                     <div class="flex items-center gap-2">
-                      <UButton size="sm" @click="chooseAvatar" color="gray" variant="soft" class="shadow">上传头像</UButton>
-                      <UButton size="sm" :loading="avatarUploading" @click="useInitialsAvatar" color="orange" variant="soft" class="shadow">使用首字母头像</UButton>
+                      <UButton size="sm" @click.stop="chooseAvatar" color="indigo" variant="soft" class="shadow">上传头像</UButton>
+                      <UButton size="sm" :loading="avatarUploading" @click.stop="useInitialsAvatar" color="orange" variant="soft" class="shadow">使用首字母头像</UButton>
                     </div>
                   </div>
                     <div class="flex items-center gap-3">
@@ -280,7 +280,7 @@
                     <input ref="avatarInput" type="file" accept="image/*" class="hidden" @change="onAvatarFileChange" />
                     <div class="flex items-center gap-2 w-full mt-2">
                       <UInput v-model="avatarLink" placeholder="头像链接（http或/api开头）" class="flex-1" />
-                      <UButton size="sm" :loading="avatarUploading" @click="saveAvatarLink" color="primary" variant="solid" class="shadow">保存链接</UButton>
+                      <UButton size="sm" :loading="avatarUploading" @click.stop="saveAvatarLink" color="primary" variant="solid" class="shadow">保存链接</UButton>
                     </div>
                     <UModal v-model="cropperOpen">
                       <div class="p-4">
@@ -294,7 +294,7 @@
                           <span :class="theme.mutedText">缩放</span>
                           <input type="range" min="0.5" max="3" step="0.01" v-model.number="cropScale" />
                           <UButton :loading="avatarUploading" color="green" @click="performCropAndUpload">裁剪并保存</UButton>
-                          <UButton color="gray" variant="soft" @click="closeCropper">取消</UButton>
+                          <UButton color="indigo" variant="soft" @click="closeCropper">取消</UButton>
                         </div>
                       </div>
                     </UModal>
@@ -322,14 +322,14 @@
                   <div class="flex items-center gap-2">
                     <span :class="theme.mutedText">API Token</span>
                     <UBadge color="primary" variant="subtle" class="text-xs px-2 py-1 rounded-md !text-primary-600 dark:!text-primary-300">{{ userToken ? '已生成' : '未生成' }}</UBadge>
-                    <UButton size="xs" :loading="regeneratingToken" @click="regenerateToken" color="gray" variant="soft" class="shadow text-xs px-2 py-1 rounded-md text-slate-600 dark:text-slate-200" title="重新生成将使旧 Token 失效">重新生成</UButton>
+                    <UButton size="xs" :loading="regeneratingToken" @click="regenerateToken" color="indigo" variant="soft" class="shadow text-xs px-2 py-1 rounded-md text-slate-600 dark:text-slate-200" title="重新生成将使旧 Token 失效">重新生成</UButton>
                   </div>
                 </div>
                 <div v-if="userToken" class="mb-2">
                   <div class="flex items-center gap-2 w-full flex-nowrap">
                     <UInput v-model="userToken" :type="showToken ? 'text' : 'password'" readonly class="font-mono text-sm flex-1 min-w-0" />
-                    <UButton :icon="showToken ? 'i-heroicons-eye-slash' : 'i-heroicons-eye'" color="gray" variant="ghost" @click="showToken = !showToken" :title="showToken ? '隐藏' : '显示'" />
-                    <UButton icon="i-heroicons-clipboard" color="gray" variant="ghost" @click="copyToken" title="复制 Token" />
+                    <UButton :icon="showToken ? 'i-heroicons-eye-slash' : 'i-heroicons-eye'" color="indigo" variant="ghost" @click="showToken = !showToken" :title="showToken ? '隐藏' : '显示'" />
+                    <UButton icon="i-heroicons-clipboard" color="indigo" variant="ghost" @click="copyToken" title="复制 Token" />
                   </div>
                   <p class="text-xs mt-1" :class="theme.mutedText">请妥善保管此 Token</p>
                 </div>
@@ -338,9 +338,10 @@
                 </div>
                 <div class="mt-3 flex items-center justify-between">
                   <span :class="theme.mutedText">邮箱</span>
-                  <span :class="userStore.user?.email ? theme.text : 'text-amber-400'">
-                    {{ userStore.user?.email ? userStore.user?.email : '未绑定邮箱，请先绑定邮箱' }}
+                  <span v-if="userStore.user?.email" :class="[theme.text, theme.border, 'inline-flex items-center px-2 py-0.5 rounded-md']">
+                    {{ userStore.user?.email }}
                   </span>
+                  <span v-else class="inline-flex items-center px-2 py-0.5 rounded-md text-amber-400 border border-amber-400/40">未绑定邮箱，请先绑定邮箱</span>
                 </div>
                 <div class="border-t mt-4 pt-3" :class="theme.border">
                   <div class="flex justify-between items-center mb-2">
@@ -350,16 +351,16 @@
                   <div v-if="editUserInfo.password">
                     <div class="w-full mb-2 flex items-center gap-2">
                       <UInput v-model="userForm.oldPassword" :type="showOldPassword ? 'text' : 'password'" placeholder="当前密码" class="flex-1" />
-                      <UButton :icon="showOldPassword ? 'i-heroicons-eye-slash' : 'i-heroicons-eye'" color="gray" variant="ghost" @click="showOldPassword = !showOldPassword" />
+                      <UButton :icon="showOldPassword ? 'i-heroicons-eye-slash' : 'i-heroicons-eye'" color="indigo" variant="ghost" @click="showOldPassword = !showOldPassword" />
                     </div>
                     <div class="w-full mb-2 flex items-center gap-2">
                       <UInput v-model="userForm.newPassword" :type="showNewPassword ? 'text' : 'password'" placeholder="新密码" class="flex-1" />
                       <UBadge :color="passwordStrengthColor" variant="soft">{{ passwordStrengthLabel }}</UBadge>
-                      <UButton :icon="showNewPassword ? 'i-heroicons-eye-slash' : 'i-heroicons-eye'" color="gray" variant="ghost" @click="showNewPassword = !showNewPassword" />
+                      <UButton :icon="showNewPassword ? 'i-heroicons-eye-slash' : 'i-heroicons-eye'" color="indigo" variant="ghost" @click="showNewPassword = !showNewPassword" />
                     </div>
                     <div class="w-full mb-2 flex items-center gap-2">
                       <UInput v-model="userForm.confirmPassword" :type="showConfirmPassword ? 'text' : 'password'" placeholder="确认新密码" class="flex-1" />
-                      <UButton :icon="showConfirmPassword ? 'i-heroicons-eye-slash' : 'i-heroicons-eye'" color="gray" variant="ghost" @click="showConfirmPassword = !showConfirmPassword" />
+                      <UButton :icon="showConfirmPassword ? 'i-heroicons-eye-slash' : 'i-heroicons-eye'" color="indigo" variant="ghost" @click="showConfirmPassword = !showConfirmPassword" />
                     </div>
                     <div class="flex justify-end gap-2">
                       <UButton @click="updatePassword" :disabled="!canSavePassword" color="primary" class="shadow">保存</UButton>
@@ -374,7 +375,7 @@
                   <div v-if="editUserInfo.emailBind">
                     <div class="w-full mb-2 flex items-center gap-2">
                       <UInput v-model="userForm.email" type="email" placeholder="输入邮箱" class="flex-1" />
-                      <UButton color="gray" variant="soft" @click="sendBindEmailCode">发送验证码</UButton>
+                      <UButton color="indigo" variant="soft" @click="sendBindEmailCode">发送验证码</UButton>
                     </div>
                     <div class="w-full mb-2 flex items-center gap-2">
                       <UInput v-model="userForm.emailCode" placeholder="验证码" class="flex-1" />
@@ -389,7 +390,7 @@
                   </div>
                   <div v-if="editUserInfo.emailChange">
                     <div class="w-full mb-2 flex items-center gap-2">
-                      <UButton color="gray" variant="soft" @click="sendChangeEmailCode">向当前邮箱发送验证码</UButton>
+                      <UButton color="indigo" variant="soft" @click="sendChangeEmailCode">向当前邮箱发送验证码</UButton>
                       <UInput v-model="userForm.changeCode" placeholder="收到的验证码" class="flex-1" />
                     </div>
                     <div class="w-full mb-2 flex items-center gap-2">
@@ -421,8 +422,8 @@
                 <div class="flex justify-between items-center mb-3">
                   <div class="flex items-center gap-2" :class="theme.text"><UIcon name="i-heroicons-hand-thumb-up" class="w-4 h-4" /><span>系统欢迎组件</span></div>
                   <div class="flex items-center gap-2">
-                    <UButton size="sm" color="gray" variant="soft" @click="applyWelcomeAdmin">使用管理员头像信息</UButton>
-                    <UButton size="sm" color="gray" variant="soft" @click="resetWelcomeConfig">重置</UButton>
+                    <UButton size="sm" color="indigo" variant="soft" @click="applyWelcomeAdmin">使用管理员头像信息</UButton>
+                    <UButton size="sm" color="indigo" variant="soft" @click="resetWelcomeConfig">重置</UButton>
                     <UButton size="sm" color="primary" class="shadow" @click="saveConfigItem('welcome')">保存</UButton>
                   </div>
                 </div>
@@ -578,7 +579,7 @@
                           </div>
                         </div>
                         <div class="flex justify-end gap-2">
-                          <UButton variant="soft" color="gray" @click="resetMusicConfig">重置</UButton>
+                          <UButton variant="soft" color="indigo" @click="resetMusicConfig">重置</UButton>
                           <UButton color="green" @click="saveMusicConfig">保存</UButton>
                         </div>
                         <div class="text-xs mt-2" :class="theme.mutedText">保存后首页自动刷新显示播放器；歌单与单曲任选其一</div>
@@ -635,7 +636,7 @@
                         <div class="space-y-2">
                           <div class="flex items-center gap-3">
                             <img :src="frontendConfig.avatarURL" class="w-12 h-12 rounded-full object-cover" alt="site-avatar" />
-                            <UButton size="sm" color="gray" variant="soft" @click="siteAvatarInput?.click()">上传图片</UButton>
+                            <UButton size="sm" color="indigo" variant="soft" @click="siteAvatarInput?.click()">上传图片</UButton>
                             <input ref="siteAvatarInput" type="file" accept="image/*" class="hidden" @change="handleSiteAvatarUpload" />
                           </div>
                           <UInput v-model="frontendConfig.avatarURL" placeholder="输入图片URL" class="w-full" />
@@ -648,7 +649,7 @@
                         <UInput v-model="frontendConfig[key]" :placeholder="`输入${label}`" class="w-full mb-2" />
                       </template>
                       <div class="flex justify-end gap-2">
-                        <UButton @click="resetConfigItem(key)" variant="ghost" color="gray">重置</UButton>
+                        <UButton @click="resetConfigItem(key)" variant="ghost" color="indigo">重置</UButton>
                         <UButton @click="saveConfigItem(key)" color="primary" class="shadow">保存</UButton>
                       </div>
                     </div>
@@ -673,7 +674,7 @@
                   </div>
                 </div>
                 <div v-if="editMode" class="flex justify-end gap-2">
-                  <UButton @click="resetConfig" variant="ghost" color="gray">重置</UButton>
+                  <UButton @click="resetConfig" variant="ghost" color="indigo">重置</UButton>
                   <UButton @click="saveConfig" color="primary" class="shadow">保存所有更改</UButton>
                 </div>
                 <div id="site-ads-section" class="col-span-12">
@@ -712,7 +713,7 @@
                             <div class="flex items-center justify-between">
                               <div class="flex items-center gap-2">
                                 <UButton size="sm" color="indigo" variant="soft" class="shadow" @click="frontendConfig.leftAds.push({ imageURL: '', linkURL: '', description: '' })">新增广告</UButton>
-                                <UButton size="sm" color="gray" variant="soft" class="shadow" @click="resetAdsConfig">重置为默认</UButton>
+                                <UButton size="sm" color="indigo" variant="soft" class="shadow" @click="resetAdsConfig">重置为默认</UButton>
                               </div>
                               <div class="flex items-center gap-2">
                                 <span class="text-sm" :class="theme.mutedText">轮播间隔(ms)</span>
@@ -793,8 +794,22 @@
                         <UButton color="primary" class="shadow" @click="saveConfigItem('friendLinks')">保存</UButton>
                       </div>
                     </div>
-                    <div class="px-4 pb-4">
-                      <div class="rounded-lg p-4 space-y-3" :class="theme.subtleBg">
+                <div class="px-4 pb-4">
+                  <div class="rounded-lg p-4 mb-3" :class="theme.subtleBg">
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+                      <UInput v-model="frontendConfig.linksApplyTitle" placeholder="友链申请标题，如 申请友链须知" />
+                      <UTextarea v-model="frontendConfig.linksApplyText" placeholder="填写申请说明与格式" class="md:col-span-2" />
+                      <div class="flex items-center gap-2">
+                        <span class="text-sm" :class="theme.mutedText">审核结果邮件通知</span>
+                        <UToggle v-model="frontendConfig.friendLinkEmailEnabled" />
+                        <UButton size="xs" color="green" variant="soft" @click="saveConfigItem('friendLinkEmailEnabled')">保存开关</UButton>
+                      </div>
+                    </div>
+                    <div class="flex justify-end gap-2 mt-2">
+                      <UButton color="primary" variant="soft" @click="saveConfigItem('linksApplyTitle'); saveConfigItem('linksApplyText')">保存说明</UButton>
+                    </div>
+                  </div>
+                  <div class="rounded-lg p-4 space-y-3" :class="theme.subtleBg">
                         <div v-for="(fl, i) in frontendConfig.friendLinks" :key="i" class="rounded-md border p-3 space-y-2" :class="theme.border">
                           <div class="flex items-center justify-between">
                             <div class="text-sm" :class="theme.text">友链 #{{ i + 1 }}</div>
@@ -814,6 +829,38 @@
               </div>
             </div>
           </div>
+          <!-- 友链申请审核管理（管理员） -->
+          <div v-if="isAdmin" id="friend-links-audit" class="col-span-12 mt-4">
+            <div :class="[theme.cardBg, theme.border, cardCls]">
+              <div class="flex items-center justify-between px-4 py-3">
+                <div class="font-semibold flex items-center gap-2" :class="theme.text">
+                  <UIcon name="i-heroicons-check-badge" class="w-5 h-5" />
+                  <span>友链申请审核</span>
+                </div>
+                <div class="flex items-center gap-2">
+                  <UInput v-model="friendLinkSearch" placeholder="搜索标题或网址" class="w-64" />
+                  <UButton color="primary" variant="soft" @click="loadFriendLinkApplications">刷新</UButton>
+                </div>
+              </div>
+              <div class="px-4 pb-4">
+                <div v-if="friendLinkApps.length === 0" class="text-sm" :class="theme.mutedText">暂无申请</div>
+                <div v-else class="space-y-2">
+                  <div v-for="app in friendLinkApps" :key="app.id" class="rounded border px-3 py-2" :class="theme.border">
+                    <div class="flex items-center justify-between gap-2">
+                      <div class="text-sm truncate" :class="theme.text">#{{ app.id }} · {{ app.title || app.link }} · {{ formatDate(app.created_at) }} · <span class="px-2 py-0.5 rounded text-xs" :class="statusClass(app.status)">{{ app.status }}</span></div>
+                      <div class="flex items-center gap-2">
+                        <UButton size="xs" color="green" variant="soft" @click="openApprove(app)">通过</UButton>
+                        <UButton size="xs" color="red" variant="soft" @click="openReject(app)">拒绝</UButton>
+                      </div>
+                    </div>
+                    <div class="text-xs mt-1" :class="theme.mutedText">{{ app.description || '-' }}</div>
+                    <div class="text-xs mt-1" :class="theme.mutedText">邮箱：{{ app.email || '-' }}</div>
+                    <div v-if="app.feedback" class="text-xs mt-1" :class="theme.mutedText">反馈：{{ app.feedback }}</div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
           
           
           <div id="comments-section" class="col-span-12">
@@ -823,19 +870,21 @@
                   <UIcon name="i-heroicons-chat-bubble-left-right" class="w-5 h-5" />
                   <span class="whitespace-nowrap">评论系统</span>
                 </div>
-                <div class="flex items-center gap-3">
-                  <span class="text-sm" :class="theme.mutedText">状态</span>
-                  <span :class="[frontendConfig.commentEnabled ? 'text-green-400' : 'text-red-400', 'text-sm']">{{ frontendConfig.commentEnabled ? '已启用' : '未启用' }}</span>
-                  <UToggle v-model="frontendConfig.commentEnabled" />
-                  <div class="flex items-center gap-2">
+                <div class="flex flex-wrap items-center gap-x-4 gap-y-2 justify-end">
+                  <div class="flex items-center gap-2 w-full sm:w-auto">
+                    <span class="text-sm" :class="theme.mutedText">状态</span>
+                    <span :class="[frontendConfig.commentEnabled ? 'text-green-400' : 'text-red-400', 'text-sm']">{{ frontendConfig.commentEnabled ? '已启用' : '未启用' }}</span>
+                    <UToggle v-model="frontendConfig.commentEnabled" class="shrink-0" />
+                  </div>
+                  <div class="flex items-center gap-2 w-full sm:w-auto">
                     <span class="text-sm" :class="theme.mutedText">邮件通知</span>
-                    <UToggle v-model="frontendConfig.commentEmailEnabled" :disabled="!frontendConfig.commentEnabled" />
+                    <UToggle v-model="frontendConfig.commentEmailEnabled" :disabled="!frontendConfig.commentEnabled" class="shrink-0" />
                   </div>
-                  <div class="flex items-center gap-2">
+                  <div class="flex items-center gap-2 w-full sm:w-auto">
                     <span class="text-sm" :class="theme.mutedText">仅登录后评论</span>
-                    <UToggle v-model="frontendConfig.commentLoginRequired" :disabled="!frontendConfig.commentEnabled" />
+                    <UToggle v-model="frontendConfig.commentLoginRequired" :disabled="!frontendConfig.commentEnabled" class="shrink-0" />
                   </div>
-                  <UButton color="green" @click="saveCommentConfig" class="shadow">保存</UButton>
+                  <UButton color="green" @click="saveCommentConfig" class="shadow w-full sm:w-auto">保存</UButton>
                 </div>
               </div>
                 <div class="px-4 pb-4">
@@ -876,7 +925,7 @@
             <template #header>
               <div class="flex justify-between items-center">
                 <h3 class="text-lg font-medium">再次确认删除</h3>
-                <UButton color="gray" variant="ghost" icon="i-mdi-close" class="-my-1" @click="resetAdminDeleteConfirm" />
+                <UButton color="indigo" variant="ghost" icon="i-mdi-close" class="-my-1" @click="resetAdminDeleteConfirm" />
               </div>
             </template>
             <div class="space-y-3">
@@ -892,7 +941,7 @@
             </div>
             <template #footer>
               <div class="flex justify-end gap-2">
-                <UButton color="gray" variant="outline" @click="resetAdminDeleteConfirm">取消</UButton>
+                <UButton color="indigo" variant="outline" @click="resetAdminDeleteConfirm">取消</UButton>
                 <UButton color="red" :disabled="!adminConfirmAcknowledged" @click="doAdminDelete">确认删除</UButton>
               </div>
             </template>
@@ -955,7 +1004,7 @@
                     <UButton :disabled="!(smtp.from || smtp.user)" :loading="testingSmtp" color="primary" @click="testSmtp">发送测试邮件</UButton>
                   </div>
                   <div class="flex justify-end gap-2 mt-3">
-                    <UButton variant="soft" color="gray" @click="loadSmtp">刷新</UButton>
+                    <UButton variant="soft" color="indigo" @click="loadSmtp">刷新</UButton>
                     <UButton color="green" @click="saveSmtp">保存</UButton>
                   </div>
                 </div>
@@ -976,7 +1025,7 @@
                   <div class="flex items-center gap-2">
                     <UInput v-model="userSearch" placeholder="搜索用户名或ID" class="flex-1" />
                     <UButton color="primary" variant="soft" @click="refreshUsers">搜索</UButton>
-                    <UButton variant="soft" color="gray" @click="refreshUsers">刷新</UButton>
+                    <UButton variant="soft" color="indigo" @click="refreshUsers">刷新</UButton>
                     <UButton variant="soft" :color="showUsers ? 'gray' : 'indigo'" @click="showUsers=!showUsers">{{ showUsers ? '折叠' : '展开' }}</UButton>
                   </div>
                 </div>
@@ -984,7 +1033,7 @@
                   <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-2">
                     <div v-for="u in filteredUsers" :key="(u.id ?? u.ID)" class="rounded border px-3 py-2" :class="theme.border">
                       <div class="flex items-center justify-between gap-2 min-w-0">
-                        <UBadge color="gray" variant="soft">#{{ u.id ?? u.ID }}</UBadge>
+                        <UBadge color="indigo" variant="soft">#{{ u.id ?? u.ID }}</UBadge>
                         <span class="truncate" :class="theme.text">{{ u.username ?? u.Username }}</span>
                         <UBadge :color="(u.is_admin ?? u.IsAdmin) ? 'primary' : 'gray'" variant="subtle">{{ (u.is_admin ?? u.IsAdmin) ? '管理员' : '普通' }}</UBadge>
                         <div class="flex-1"></div>
@@ -1013,7 +1062,7 @@
                           <div class="text-sm mb-1" :class="theme.text">重置密码</div>
                           <div class="flex items-center gap-2">
                             <UInput v-model="resetForm.password[(u.id ?? u.ID)]" :type="showResetPassword ? 'text' : 'password'" placeholder="新密码" class="flex-1" />
-                            <UButton :icon="showResetPassword ? 'i-heroicons-eye-slash' : 'i-heroicons-eye'" color="gray" variant="ghost" @click="showResetPassword = !showResetPassword" />
+                            <UButton :icon="showResetPassword ? 'i-heroicons-eye-slash' : 'i-heroicons-eye'" color="indigo" variant="ghost" @click="showResetPassword = !showResetPassword" />
                             <UButton :disabled="!canReset(u)" color="primary" @click="resetUserPassword(u)">保存</UButton>
                           </div>
                         </div>
@@ -1036,7 +1085,7 @@
                   <UInput v-model="adminReset.confirmPass" :type="showAdminPassword ? 'text' : 'password'" placeholder="确认新密码" class="flex-1" />
                 </div>
                 <div class="flex justify-end gap-2">
-                  <UButton variant="ghost" color="gray" @click="showAdminResetModal = false">取消</UButton>
+                  <UButton variant="ghost" color="indigo" @click="showAdminResetModal = false">取消</UButton>
                   <UButton :disabled="!canSaveAdminReset" color="primary" @click="resetAdminPassword">保存</UButton>
                 </div>
               </div>
@@ -1105,7 +1154,7 @@
                   </div>
                 </div>
                 <div class="flex justify-end gap-2">
-                  <UButton variant="soft" color="gray" @click="fetchConfig">刷新</UButton>
+                  <UButton variant="soft" color="indigo" @click="fetchConfig">刷新</UButton>
                   <UButton color="green" @click="saveGithubOAuthConfig">保存</UButton>
                   <UButton color="primary" @click="testGithubOAuth">测试</UButton>
                 </div>
@@ -1189,7 +1238,7 @@
                     </div>
                   </div>
                   <div class="flex justify-end gap-2 mt-2">
-                    <UButton variant="soft" color="gray" @click="loadStorageConfig">刷新</UButton>
+                    <UButton variant="soft" color="indigo" @click="loadStorageConfig">刷新</UButton>
                     <UButton color="green" @click="saveStorageConfig">保存</UButton>
                   </div>
                     <div class="grid grid-cols-1 md:grid-cols-2 gap-3 mt-3">
@@ -1273,7 +1322,7 @@
                             <span class="text-gray-300">当前版本: {{ versionInfo.currentVersion || '最新' }}</span>
                             <UButton
                                 size="xs"
-                                color="gray"
+                                color="indigo"
                                 variant="ghost"
                                 :loading="versionInfo.checking"
                                 @click="checkVersion"
@@ -1376,7 +1425,7 @@
             />
             <UButton
                 icon="i-heroicons-clipboard"
-                color="gray"
+                color="indigo"
                 variant="ghost"
                 @click="copyToken"
             />
@@ -1435,7 +1484,7 @@
                         <div class="flex justify-between items-center mb-3">
                             <span :class="theme.text">系统欢迎组件</span>
                             <div class="flex items-center gap-2">
-                                <UButton size="sm" color="gray" variant="soft" @click="applyWelcomeAdmin">使用管理员头像信息</UButton>
+                                <UButton size="sm" color="indigo" variant="soft" @click="applyWelcomeAdmin">使用管理员头像信息</UButton>
                                 <UButton size="sm" color="primary" class="shadow" @click="saveConfigItem('welcome')">保存</UButton>
                             </div>
                         </div>
@@ -1547,7 +1596,7 @@
                       <UButton color="red" variant="soft" @click="toggleMusic(false)">关闭</UButton>
                       <UToggle v-model="frontendConfig.musicEnabled" />
                       <UButton color="green" @click="saveMusicConfig">保存</UButton>
-                      <UButton variant="soft" color="gray" @click="resetMusicConfig">重置</UButton>
+                      <UButton variant="soft" color="indigo" @click="resetMusicConfig">重置</UButton>
                     </div>
                   </div>
                   <div class="grid grid-cols-1 md:grid-cols-2 gap-3 mb-3">
@@ -1700,7 +1749,7 @@
                                     />
                                 </template>
                                 <div class="flex justify-end gap-2">
-                                    <UButton @click="resetConfigItem(key)" variant="ghost" color="gray">
+                                    <UButton @click="resetConfigItem(key)" variant="ghost" color="indigo">
                                         重置
                                     </UButton>
                                     <UButton @click="saveConfigItem(key)" color="primary">
@@ -1729,7 +1778,7 @@
 
                 <!-- 保存按钮 -->
                 <div v-if="editMode" class="flex justify-end gap-2 mb-6">
-                    <UButton @click="resetConfig" variant="ghost" color="gray">
+                    <UButton @click="resetConfig" variant="ghost" color="indigo">
                         重置
                     </UButton>
                     <UButton @click="saveConfig" color="primary">
@@ -1896,6 +1945,21 @@ onUnmounted(() => {
   if (typeof window !== 'undefined') window.removeEventListener('resize', updateBottomBarVisibility)
 })
 
+const headerCompact = ref(false)
+const adminMain = ref<HTMLElement | null>(null)
+const headerBtnCls = computed(() => panelTheme.value === 'light' ? 'bg-gray-100 hover:bg-gray-200 text-slate-900' : 'bg-slate-800/70 hover:bg-slate-700/70 text-white')
+let adminScrollHandler: any = null
+onMounted(() => {
+  const el = adminMain.value
+  if (!el) return
+  adminScrollHandler = () => { headerCompact.value = el.scrollTop > 8 }
+  el.addEventListener('scroll', adminScrollHandler)
+})
+onUnmounted(() => {
+  const el = adminMain.value
+  if (el && adminScrollHandler) el.removeEventListener('scroll', adminScrollHandler)
+})
+
 const theme = computed(() => {
   if (panelTheme.value === 'light') {
     return {
@@ -1976,6 +2040,53 @@ const theme = computed(() => {
     navBtnHoverBg: 'hover:bg-slate-700/70'
   }
 })
+
+// 友链申请审核数据与方法
+const friendLinkApps = ref<any[]>([])
+const friendLinkSearch = ref('')
+const statusClass = (s: string) => {
+  const v = String(s || '').toLowerCase()
+  if (v === 'approved') return 'bg-green-500/20 text-green-400'
+  if (v === 'rejected') return 'bg-red-500/20 text-red-400'
+  return 'bg-gray-500/20 text-gray-300'
+}
+const loadFriendLinkApplications = async () => {
+  try {
+    const q = (friendLinkSearch.value || '').trim()
+    const res: any = await getRequest<any>('friend-links/apply', q ? { q } : undefined, { credentials: 'include' })
+    if (res && res.code === 1) {
+      friendLinkApps.value = Array.isArray(res.data) ? res.data : []
+      useToast().add({ title: '已刷新', description: `共 ${friendLinkApps.value.length} 条申请`, color: 'green' })
+    } else {
+      throw new Error(res?.msg || '加载失败')
+    }
+  } catch (e: any) {
+    useToast().add({ title: '加载失败', description: e.message || '请稍后重试', color: 'red' })
+  }
+}
+const openApprove = async (app: any) => {
+  const fb = prompt('可填写通过说明（选填）：', '')
+  await auditFriendLink(app, true, fb || '')
+}
+const openReject = async (app: any) => {
+  const fb = prompt('请填写拒绝原因（选填）：', '')
+  await auditFriendLink(app, false, fb || '')
+}
+const auditFriendLink = async (app: any, approve: boolean, feedback: string) => {
+  try {
+    const res: any = await putRequest<any>(`friend-links/${app.id}/audit`, { approve, feedback }, { credentials: 'include' })
+    if (res && res.code === 1) {
+      useToast().add({ title: '成功', description: approve ? '已通过并入库展示' : '已拒绝并通知', color: approve ? 'green' : 'orange' })
+      await fetchConfig()
+      await loadFriendLinkApplications()
+      window.dispatchEvent(new Event('frontend-config-updated'))
+    } else {
+      throw new Error(res?.msg || '操作失败')
+    }
+  } catch (e: any) {
+    useToast().add({ title: '操作失败', description: e.message || '请稍后重试', color: 'red' })
+  }
+}
 
 
 const saveAdminTheme = async () => {
@@ -2894,7 +3005,10 @@ const useInitialsAvatar = async () => {
     const res = await putRequest<any>('user/update', { avatar_url: dice }, { credentials: 'include' })
     if (!res || res.code !== 1) throw new Error(res?.msg || '保存失败')
     await userStore.getUser()
+    // 清理任何手动输入或本地预览，确保生效
     localPreview.value = ''
+    avatarLink.value = ''
+    if (avatarInput.value) avatarInput.value.value = ''
     useToast().add({ title: '成功', description: '已切换为首字母头像', color: 'green' })
   } catch (e: any) {
     useToast().add({ title: '错误', description: e?.message || '操作失败', color: 'red' })
@@ -2916,8 +3030,6 @@ const configLabels = {
     rssDescription: 'RSS 描述',
     rssAuthorName: 'RSS 作者',
     rssFaviconURL: 'RSS 图标链接',
-    linksTitle: '友链页面标题',
-    linksDescription: '友链页面说明',
     commentPageTitle: '留言页面标题',
     commentPageDescription: '留言页面说明',
     aboutPageTitle: '关于页面标题',
@@ -2944,6 +3056,9 @@ const frontendConfig = reactive({
   friendLinks: [] as Array<{ title: string; link: string; icon?: string; description?: string }>,
     linksTitle: '',
     linksDescription: '',
+    linksApplyTitle: '',
+    linksApplyText: '',
+    friendLinkEmailEnabled: false,
     commentPageTitle: '',
     commentPageDescription: '',
     aboutPageTitle: '',
@@ -3022,8 +3137,8 @@ const editItem = reactive({
     rssFaviconURL: false,
     walineServerURL: false,
     socialLinks: false,
-    linksTitle: false,
-    linksDescription: false,
+    
+    friendLinkEmailEnabled: false,
     commentPageTitle: false,
     commentPageDescription: false,
     aboutPageTitle: false,
@@ -3065,6 +3180,9 @@ const defaultConfig = {
     hitokotoEnabled: true,
     linksTitle: '友情链接',
     linksDescription: '推荐站点和朋友们的主页',
+    linksApplyTitle: '申请友链须知',
+    linksApplyText: '请提供站点名称、网址、图标（可选）、简介与有效邮箱。提交后需管理员审核，审核通过后展示。',
+    friendLinkEmailEnabled: false,
     commentPageTitle: '留言',
     commentPageDescription: '欢迎留下你的看法',
     aboutPageTitle: '关于本站',
@@ -3140,7 +3258,7 @@ const fetchConfig = async () => {
             const settings = data.data.frontendSettings;
             
             // 遍历配置项进行更新（布尔型键需强制转换）
-            const booleanKeys = ['enableGithubCard', 'pwaEnabled', 'announcementEnabled', 'hitokotoEnabled', 'musicEnabled', 'musicLyric', 'musicAutoplay', 'musicDefaultMinimized', 'musicEmbed', 'commentEnabled', 'commentEmailEnabled', 'commentLoginRequired', 'githubOAuthEnabled', 'notifyEnabled', 'calendarEnabled', 'timeEnabled', 'leftAdEnabled', 'welcomeUseAdmin']
+            const booleanKeys = ['enableGithubCard', 'pwaEnabled', 'announcementEnabled', 'hitokotoEnabled', 'musicEnabled', 'musicLyric', 'musicAutoplay', 'musicDefaultMinimized', 'musicEmbed', 'commentEnabled', 'commentEmailEnabled', 'commentLoginRequired', 'githubOAuthEnabled', 'notifyEnabled', 'calendarEnabled', 'timeEnabled', 'leftAdEnabled', 'welcomeUseAdmin', 'friendLinkEmailEnabled']
             Object.keys(frontendConfig).forEach(key => {
                 if (key === 'backgrounds') {
                     const serverBackgrounds = settings[key];
@@ -3697,17 +3815,7 @@ const musicEmbedMode = computed({
 })
 
 const musicCdnPreset = ref('hypcvgm')
-const applyMusicCdnAssets = () => {
-  const css = String((frontendConfig as any).musicCssCdnURL || '').trim()
-  const js = String((frontendConfig as any).musicJsCdnURL || '').trim()
-  const linkArr: any[] = []
-  const scriptArr: any[] = []
-  if (css) linkArr.push({ rel: 'stylesheet', href: css })
-  if (js) scriptArr.push({ src: js, body: true })
-  if (linkArr.length || scriptArr.length) {
-    useHead({ link: linkArr, script: scriptArr })
-  }
-}
+const applyMusicCdnAssets = () => {}
 watch(musicCdnPreset, (v) => {
   if (v === 'hypcvgm') {
     ;(frontendConfig as any).musicCssCdnURL = 'https://api.hypcvgm.top/NeteaseMiniPlayer/netease-mini-player-v2.css'

@@ -82,7 +82,7 @@
                   </div>
                 </a>
                 <div v-if="leftAds.length > 1" class="absolute bottom-2 left-0 right-0 flex justify-center gap-2">
-                  <button v-for="(ad, i) in leftAds" :key="i" @click="adIndex = i" class="w-2 h-2 rounded-full" :class="i === adIndex ? 'bg-white' : 'bg-white/40'" aria-label="switch-ad"></button>
+                  <button v-for="(ad, i) in leftAds" :key="i" @click="switchAd(i)" class="w-2 h-2 rounded-full" :class="i === adIndex ? 'bg-white' : 'bg-white/40'" aria-label="switch-ad"></button>
                 </div>
               </div>
             </template>
@@ -156,16 +156,33 @@
             <UCard class="search-card mb-3" :ui="{ body: 'p-3 md:p-4' }">
               <div class="card-title text-center" :class="isDark ? 'text-white' : 'text-black'">{{ frontendConfig.linksTitle || '友情链接' }}</div>
               <div v-if="(frontendConfig.linksDescription || '').trim() !== ''" class="section-subtitle">{{ frontendConfig.linksDescription }}</div>
-              <div class="mx-auto w-full max-w-3xl px-4 sm:px-6">
-              <div class="link-grid">
-                <a v-for="fl in friendLinksList" :key="fl.link || fl.title" :href="fl.link" target="_blank" rel="noopener noreferrer" class="link-card" :class="isDark ? 'link-card-dark' : 'link-card-light'">
-                  <UIcon :name="getIconName({ url: fl.link, icon: fl.icon })" class="w-7 h-7" />
-                  <div class="link-content">
-                    <div class="link-title">{{ fl.title }}</div>
-                    <div v-if="fl.description" class="text-xs opacity-75">{{ fl.description }}</div>
-                  </div>
-                </a>
+              <div v-if="friendLinksList.length > 0" class="mx-auto w-full max-w-3xl px-4 sm:px-6 mt-3 mb-3">
+                <div class="link-grid">
+                  <a v-for="fl in friendLinksList" :key="fl.link || fl.title" :href="fl.link" target="_blank" rel="noopener noreferrer" class="link-card" :class="isDark ? 'link-card-dark' : 'link-card-light'">
+                    <UIcon :name="getIconName({ url: fl.link, icon: fl.icon })" class="w-7 h-7" />
+                    <div class="link-content">
+                      <div class="link-title">{{ fl.title }}</div>
+                      <div v-if="fl.description" class="text-xs opacity-75">{{ fl.description }}</div>
+                    </div>
+                  </a>
+                </div>
               </div>
+              <div v-if="(frontendConfig.linksApplyTitle || '').trim() !== '' || (frontendConfig.linksApplyText || '').trim() !== ''" class="mt-2">
+                <div class="text-sm font-medium text-center mb-1" :class="isDark ? 'text-white' : 'text-black'">{{ (frontendConfig.linksApplyTitle || '申请友链须知') }}</div>
+                <div class="apply-text text-center" :class="isDark ? 'text-white/80' : 'text-black/70'">{{ (frontendConfig.linksApplyText || '').trim() }}</div>
+              </div>
+              <div class="mt-4 mx-auto w-full max-w-2xl px-4 sm:px-6">
+                <div class="text-center text-xs opacity-70 mb-2">提交后需管理员审核</div>
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                  <UInput v-model="linkApply.title" placeholder="站点名称（可选）" />
+                  <UInput v-model="linkApply.link" placeholder="网址（必填，如 https://example.com）" />
+                  <UInput v-model="linkApply.icon" placeholder="图标标识（可选，例如 i-mdi-home）" />
+                  <UInput v-model="linkApply.email" placeholder="邮箱（用于通知，可选）" />
+                  <UTextarea v-model="linkApply.description" :rows="2" placeholder="简介（可选）" class="sm:col-span-2" />
+                </div>
+                <div class="flex justify-center mt-2">
+                  <UButton :loading="applying" color="primary" @click="submitFriendLinkApply">提交申请</UButton>
+                </div>
               </div>
             </UCard>
           </div>
@@ -198,14 +215,15 @@
                 @updateTags="handleTagsUpdate" 
               />
             </div>
-            <MessageList 
-              ref="messageList" 
-              class="message-list-container" 
-              :site-config="frontendConfig"
-              :target-message-id="targetMessageId" 
-              :wide="layoutState==='two'"
-            />
+          <MessageList 
+            ref="messageList" 
+            class="message-list-container" 
+            :site-config="frontendConfig"
+            :target-message-id="targetMessageId" 
+            :wide="layoutState==='two'"
+          />
           </template>
+          <div class="page-footer" v-html="(frontendConfig.pageFooterHTML || defaultConfig.pageFooterHTML)"></div>
         </div>
       </div>
       <ClientOnly>
@@ -225,7 +243,7 @@
         </UCard>
         <UCard class="sidebar-card no-padding-card" :class="sidebarThemeCard">
           <div>
-            <div class="text-xs opacity-70 mb-2">图集</div>
+            <div class="text-xs opacity-70 mb-2">最新图集（{{ recommendedImages.length }}）</div>
             <div class="scroll-images">
               <div class="recommend-grid">
                 <a v-for="img in recommendedImages" :key="img.id || img" :href="imageSrc(img)" data-fancybox="recommend-gallery" class="block">
@@ -294,7 +312,7 @@
                 </div>
               </a>
               <div v-if="leftAds.length > 1" class="absolute bottom-2 left-0 right-0 flex justify-center gap-2">
-                <button v-for="(ad, i) in leftAds" :key="i" @click="adIndex = i" class="w-2 h-2 rounded-full" :class="i === adIndex ? 'bg-white' : 'bg-white/40'" aria-label="switch-ad"></button>
+                <button v-for="(ad, i) in leftAds" :key="i" @click="switchAd(i)" class="w-2 h-2 rounded-full" :class="i === adIndex ? 'bg-white' : 'bg-white/40'" aria-label="switch-ad"></button>
               </div>
             </div>
             
@@ -1033,6 +1051,8 @@ const headerImageStyle = computed(() => ({
   aboutMarkdown: '# 关于我\n\n这里是一个默认的个人简介示例：\n\n- 喜欢记录与分享\n- 热爱开源与学习\n- 持续打磨产品体验\n\n欢迎通过友链或留言与我交流！',
   linksTitle: '友情链接',
   linksDescription: '推荐站点和朋友们的主页',
+  linksApplyTitle: '申请友链须知',
+  linksApplyText: '请提供站点名称、网址、图标（可选）、简介与有效邮箱。提交后需管理员审核，审核通过后展示。',
   commentPageTitle: '留言',
   commentPageDescription: '欢迎留下你的看法',
   aboutPageTitle: '关于本站',
@@ -1200,6 +1220,48 @@ const friendLinksList = computed(() => {
     description: String(it?.description || '').trim(),
   }))
 })
+// 友链申请表单与提交
+const linkApply = reactive<{ title: string; link: string; icon: string; email: string; description: string }>({ title: '', link: '', icon: '', email: '', description: '' })
+const applying = ref(false)
+const submitFriendLinkApply = async () => {
+  if (!String(linkApply.link || '').trim()) {
+    useToast().add({ title: '提示', description: '请填写网址（必填）', color: 'orange' })
+    return
+  }
+  const url = String(linkApply.link || '').trim()
+  if (!/^https?:\/\//i.test(url)) {
+    useToast().add({ title: '提示', description: '网址需以 http(s):// 开头', color: 'orange' })
+    return
+  }
+  applying.value = true
+  try {
+    const res = await fetch(`${baseApi}/friend-links/apply`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      credentials: 'include',
+      body: JSON.stringify({
+        title: String(linkApply.title || '').trim(),
+        link: url,
+        icon: String(linkApply.icon || '').trim(),
+        description: String(linkApply.description || '').trim(),
+        email: String(linkApply.email || '').trim(),
+      })
+    })
+    const data = await res.json().catch(() => ({}))
+    if (res.ok && (data?.code === 1 || data?.data)) {
+      useToast().add({ title: '已提交，待审核', color: 'green' })
+      linkApply.title = ''
+      linkApply.link = ''
+      linkApply.icon = ''
+      linkApply.email = ''
+      linkApply.description = ''
+    } else {
+      useToast().add({ title: '提交失败', description: data?.msg || '请稍后重试', color: 'red' })
+    }
+  } catch (e: any) {
+    useToast().add({ title: '提交失败', description: e?.message || '网络异常', color: 'red' })
+  } finally { applying.value = false }
+}
 const HITOKOTO_FALLBACKS = [
   '身为冒险者，如果安静的老死在床上，那简直就是耻辱！',
   '愿你出走半生，归来仍是少年。',
@@ -1366,12 +1428,35 @@ const imgSrc = (raw: string) => {
 const adIndex = ref(0)
 const currentAd = computed(() => leftAds.value[Math.max(0, Math.min(adIndex.value, leftAds.value.length - 1))] || { imageURL: '', linkURL: '', description: '' })
 let adTimer: any
+const preloadAdImage = (ad: any): Promise<boolean> => {
+  return new Promise((resolve) => {
+    try {
+      const url = imgSrc(ad?.imageURL || '')
+      if (!url) return resolve(false)
+      const img = new Image()
+      img.src = url
+      img.onload = () => resolve(true)
+      img.onerror = () => resolve(false)
+    } catch { resolve(false) }
+  })
+}
+const switchAd = async (i: number) => {
+  const target = leftAds.value[Math.max(0, Math.min(i, leftAds.value.length - 1))]
+  if (!target) return
+  const ok = await preloadAdImage(target)
+  if (ok) adIndex.value = leftAds.value.indexOf(target)
+}
+const advanceAd = async () => {
+  if (leftAds.value.length <= 1) return
+  const nextIdx = (adIndex.value + 1) % leftAds.value.length
+  const next = leftAds.value[nextIdx]
+  const ok = await preloadAdImage(next)
+  if (ok) adIndex.value = nextIdx
+}
 onMounted(() => {
   const interval = Number(frontendConfig.leftAdsIntervalMs || 5000)
   if (leftAds.value.length > 1) {
-    adTimer = setInterval(() => {
-      adIndex.value = (adIndex.value + 1) % leftAds.value.length
-    }, Math.max(2000, interval))
+    adTimer = setInterval(() => { advanceAd() }, Math.max(2000, interval))
   }
 })
 onUnmounted(() => { if (adTimer) clearInterval(adTimer) })
@@ -2135,7 +2220,7 @@ white-space: nowrap;  /* 防止换行 */
 }
 .layout-container { --sidebar-width: 320px; --grid-gap: 16px; }
 .left-col, .right-col { position: sticky; top: 0; align-self: start; height: fit-content; }
-.center-col { min-width: 0; }
+.center-col { min-width: 0; box-sizing: border-box; }
 .sidebar-card {
   border-radius: 10px;
   background: #ffffff;
@@ -2230,7 +2315,7 @@ html.dark .sidebar-card :where(.border,.border-gray-200,.border-gray-300,.border
 .section-title-dark { color: #fff; }
 .link-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); gap: 8px; justify-items: center; }
 .link-card { display: flex; align-items: center; gap: 8px; padding: 8px; border-radius: 8px; text-decoration: none; transition: background-color .16s ease, border-color .16s ease, transform .12s ease; }
-.link-card { width: 100%; max-width: 300px; }
+.link-card { width: 100%; max-width: 220px; }
 .link-card-light { background: #fff; color: #111827; border: 1px solid rgba(0,0,0,0.08); box-shadow: 0 1px 2px rgba(0,0,0,0.06); }
 .link-card-dark { background: rgba(36,43,50,0.85); color: #fff; border: 1px solid rgba(255,255,255,0.12); box-shadow: 0 1px 2px rgba(255,255,255,0.06); }
 .link-card:hover { background-color: rgba(0,0,0,0.02); transform: translateY(-1px); }
@@ -2318,6 +2403,9 @@ html.dark .sidebar-card :where(.border,.border-gray-200,.border-gray-300,.border
   .scroll-images { height: 180px; }
   .recommend-grid { grid-auto-rows: 56px; gap: 4px; }
 }
+@media screen and (max-width: 768px) { .center-col { padding-left: 2%; padding-right: 2%; } }
+@media screen and (max-width: 480px) { .center-col { padding-left: 3%; padding-right: 3%; } }
+.page-footer { text-align: center; font-size: 12px; padding: 12px 0; }
 </style>
   mq?.addEventListener?.('change', (e: MediaQueryListEvent) => {
     isMobile.value = e.matches

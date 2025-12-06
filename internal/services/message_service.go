@@ -266,24 +266,29 @@ func contains(s, substr string) bool {
 	return strings.Contains(s, substr)
 }
 
-// UpdateMessage 更新消息内容
-func UpdateMessage(messageID uint, content string) error {
-	// 获取消息
+// UpdateMessage 更新消息字段
+func UpdateMessage(messageID uint, content *string, private *bool) (*models.Message, error) {
 	message, err := repository.GetMessageByID(messageID, true)
 	if err != nil {
-		return fmt.Errorf("获取消息失败: %v", err)
+		return nil, fmt.Errorf("获取消息失败: %v", err)
 	}
 	if message == nil {
-		return fmt.Errorf("消息不存在")
+		return nil, fmt.Errorf("消息不存在")
 	}
-
-	// 更新消息内容
-	message.Content = content
+	if content != nil {
+		c := strings.TrimSpace(*content)
+		if c == "" && strings.TrimSpace(message.ImageURL) == "" {
+			return nil, fmt.Errorf(models.CannotBeEmptyMessage)
+		}
+		message.Content = c
+	}
+	if private != nil {
+		message.Private = *private
+	}
 	if err := database.DB.Save(message).Error; err != nil {
-		return fmt.Errorf("更新消息失败: %v", err)
+		return nil, fmt.Errorf("更新消息失败: %v", err)
 	}
-
-	return nil
+	return message, nil
 }
 
 // UpdateMessagePinned 更新消息置顶状态

@@ -456,7 +456,7 @@ watch(() => contentTheme && contentTheme.value, () => {
   position: relative;
   width: 100%;
   padding-bottom: 56.25%; /* 16:9 宽高比 */
-  margin: 1em 0;
+  margin: 0.4em 0;
 }
 
 .video-wrapper iframe {
@@ -469,12 +469,12 @@ watch(() => contentTheme && contentTheme.value, () => {
 
 .music-wrapper {
   width: 100%;
-  margin: 1em 0;
+  margin: 0.4em 0;
 }
 
 .spotify-wrapper {
   width: 100%;
-  margin: 1em 0;
+  margin: 0.4em 0;
 }
 
 .spotify-wrapper iframe {
@@ -487,6 +487,13 @@ watch(() => contentTheme && contentTheme.value, () => {
   height: auto;
   display: block;
   margin: 0.4em auto;
+}
+
+.markdown-preview :deep(video),
+.markdown-preview :deep(audio) {
+  display: block;
+  width: 100%;
+  margin: 0.4em 0;
 }
 
 
@@ -603,7 +610,7 @@ watch(() => contentTheme && contentTheme.value, () => {
 }
 .music-wrapper {
   width: 100%;
-  margin: 1em 0;
+  margin: 0.4em 0;
   max-width: 800px;
   margin-left: auto;
   margin-right: auto;
@@ -612,7 +619,7 @@ watch(() => contentTheme && contentTheme.value, () => {
 .aplayer {
   box-shadow: 0 0 10px rgba(0,0,0,0.1);
   border-radius: 4px;
-  margin: 1em 0 !important;
+  margin: 0.5em 0 !important;
 }
 .theme-dark .aplayer {
   background: rgba(22,27,34,0.85);

@@ -15,11 +15,11 @@
         <UTextarea v-model="local.commentEmailAdminTemplateHTML" :ui="{base: theme?.text}" placeholder="管理员通知 HTML 模板（可选）支持 {site} {nick} {mail} {link} {content} {url}" />
         <div class="md:col-span-3 rounded border p-3" :class="theme?.border">
           <div :class="theme?.text">回复通知富文本预览</div>
-          <div class="mt-2 rounded p-2 bg-white text-black" v-html="previewReplyHTML"></div>
+          <div class="mt-2 rounded p-2 email-preview" v-html="previewReplyHTML"></div>
         </div>
         <div class="md:col-span-3 rounded border p-3" :class="theme?.border">
           <div :class="theme?.text">管理员通知富文本预览</div>
-          <div class="mt-2 rounded p-2 bg-white text-black" v-html="previewAdminHTML"></div>
+          <div class="mt-2 rounded p-2 email-preview" v-html="previewAdminHTML"></div>
         </div>
       </div>
       
@@ -152,3 +152,8 @@ const previewAdminHTML = computed(() => {
     .replaceAll('{url}', url)
 })
 </script>
+
+<style scoped>
+.email-preview { background: #ffffff; color: #111827; border: 1px solid #e5e7eb; }
+html.dark .email-preview { background: rgba(36,43,50,0.95); color: #fff; border: 1px solid rgba(255,255,255,0.08); }
+</style>

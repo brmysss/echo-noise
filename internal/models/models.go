@@ -195,6 +195,9 @@ type SiteConfig struct {
 	AboutPageTitle         string `gorm:"type:varchar(100)"`
 	AboutPageDescription   string `gorm:"type:varchar(191)"`
 	AboutMarkdown          string `gorm:"type:text"`
+	LinksApplyTitle        string `gorm:"type:varchar(100)"`
+	LinksApplyText         string `gorm:"type:text"`
+	FriendLinkEmailEnabled bool   `gorm:"default:false"`
 }
 
 func (s *SiteConfig) GetBackgroundsList() []string {
@@ -232,4 +235,26 @@ func UpdateMessage(id string, content string) error {
 	}
 
 	return nil
+}
+
+type FriendLink struct {
+	ID          uint      `gorm:"primaryKey" json:"id"`
+	Title       string    `gorm:"type:varchar(100)" json:"title"`
+	Link        string    `gorm:"type:varchar(255)" json:"link"`
+	Icon        string    `gorm:"type:varchar(100)" json:"icon"`
+	Description string    `gorm:"type:varchar(255)" json:"description"`
+	Email       string    `gorm:"type:varchar(191)" json:"email"`
+	CreatedAt   time.Time `json:"created_at"`
+}
+type FriendLinkApply struct {
+	ID          uint      `gorm:"primaryKey" json:"id"`
+	Title       string    `gorm:"type:varchar(100)" json:"title"`
+	Link        string    `gorm:"type:varchar(255);index" json:"link"`
+	Icon        string    `gorm:"type:varchar(100)" json:"icon"`
+	Description string    `gorm:"type:varchar(255)" json:"description"`
+	Email       string    `gorm:"type:varchar(191)" json:"email"`
+	Status      string    `gorm:"type:varchar(20);index" json:"status"`
+	Feedback    string    `gorm:"type:text" json:"feedback"`
+	CreatedAt   time.Time `json:"created_at"`
+	UpdatedAt   time.Time `json:"updated_at"`
 }

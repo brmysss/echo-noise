@@ -215,6 +215,32 @@ const getMessages = async (query: PageQuery) => {
     }
   };
 
+  const setPrivate = async (id: number, priv: boolean) => {
+    try {
+      const response = await putRequest<any>(`messages/${id}`, { private: priv }, {
+        credentials: 'include'
+      });
+      if (!response || response.code !== 1) {
+        toast.add({
+          title: "更新私密状态失败",
+          description: response?.msg,
+          icon: "i-fluent-error-circle-16-filled",
+          color: "red",
+          timeout: 2000,
+        });
+        return null;
+      }
+      const index = messages.value.findIndex(msg => msg.id === id);
+      if (index !== -1) {
+        messages.value[index] = response.data;
+      }
+      return response;
+    } catch (error) {
+      console.error("更新私密状态失败:", error);
+      throw error;
+    }
+  };
+
   // 切换置顶状态
   const setPinned = async (id: number, pinned: boolean) => {
     try {
@@ -451,6 +477,7 @@ const createMessage = async (message: Message) => {
   getMessages,
   deleteMessage,
   updateMessage,
+  setPrivate,
   setPinned,
   getMessageById,
   getSiteConfig,

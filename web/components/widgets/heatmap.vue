@@ -8,10 +8,13 @@
             :key="j" 
             class="heatmap-day"
             :style="{ backgroundColor: getBackgroundColor(day) }"
-            :title="`${day.date} · ${day.count || 0} 条`"
+            @mouseenter="showTooltip($event, day)"
+            @mouseleave="hideTooltip"
+            @mousemove="moveTooltip"
           ></div>
         </div>
       </div>
+      <div v-if="tooltip.visible" class="heatmap-tooltip" :class="isDark ? 'heatmap-tooltip-dark' : 'heatmap-tooltip-light'" :style="{ left: tooltip.x + 'px', top: tooltip.y + 'px' }">{{ tooltip.text }}</div>
     </div>
   </div>
 </template>
@@ -22,6 +25,7 @@ import { ref, onMounted, computed, nextTick, inject } from 'vue'
 const rawData = ref([])
 const calendarData = ref([])
 const calendarContainer = ref(null)
+const tooltip = ref({ visible: false, text: '', x: 0, y: 0 })
 
 // 主题注入与样式类
 const injectedTheme = inject('contentTheme', ref('light')) as any
@@ -97,6 +101,29 @@ const getBackgroundColor = (day: { count: number; level: number }) => {
       console.error('获取热力图数据失败:', error)
       generateTestData()
     }
+  }
+  const showTooltip = (e: MouseEvent, day: any) => {
+    tooltip.value.text = `${day.date} · ${day.count || 0} 条`
+    const target = e.target as HTMLElement
+    const tRect = target.getBoundingClientRect()
+    const cRect = (calendarContainer.value as HTMLElement)?.getBoundingClientRect()
+    const x = tRect.left - (cRect?.left || 0) + tRect.width / 2
+    const y = tRect.top - (cRect?.top || 0) - 6
+    tooltip.value.x = x
+    tooltip.value.y = y
+    tooltip.value.visible = true
+  }
+  const moveTooltip = (e: MouseEvent) => {
+    const target = e.target as HTMLElement
+    const tRect = target.getBoundingClientRect()
+    const cRect = (calendarContainer.value as HTMLElement)?.getBoundingClientRect()
+    const x = tRect.left - (cRect?.left || 0) + tRect.width / 2
+    const y = tRect.top - (cRect?.top || 0) - 6
+    tooltip.value.x = x
+    tooltip.value.y = y
+  }
+  const hideTooltip = () => {
+    tooltip.value.visible = false
   }
   
   const generateTestData = () => {
@@ -214,7 +241,7 @@ const getBackgroundColor = (day: { count: number; level: number }) => {
   <style scoped>
   .calendar-wrapper {
     position: relative;
-    overflow: hidden;
+    overflow: visible;
     margin: 0;
     padding: 0;
     width: 100%;
@@ -289,6 +316,30 @@ const getBackgroundColor = (day: { count: number; level: number }) => {
   
   .heatmap-day:hover {
     transform: scale(1.2);
+  }
+  .heatmap-tooltip {
+    position: absolute;
+    transform: translate(-50%, -100%);
+    padding: 4px 8px;
+    border-radius: 6px;
+    font-size: 11px;
+    line-height: 1.2;
+    white-space: nowrap;
+    pointer-events: none;
+    z-index: 1000;
+  }
+  .heatmap-tooltip-light {
+    background: rgba(255,255,255,0.95);
+    color: #111827;
+    border: 1px solid rgba(0,0,0,0.18);
+    box-shadow: 0 4px 12px rgba(0,0,0,0.12);
+  }
+  .heatmap-tooltip-dark {
+    background: rgba(36,43,50,0.92);
+    color: #ffffff;
+    border: 1px solid rgba(255,255,255,0.20);
+    box-shadow: 0 6px 16px rgba(0,0,0,0.35);
+    backdrop-filter: blur(6px);
   }
   
   @media screen and (max-width: 1024px) {
